@@ -5,7 +5,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const crypto = require('crypto'); // NEW: For hashing files to detect duplicates
+const crypto = require('crypto'); // Used for checking duplicate proofs
 require('dotenv').config();
 
 // Models
@@ -13,8 +13,8 @@ const Livestock = require('./models/Livestock');
 const Order = require('./models/Order');
 const User = require('./models/User');
 
-// --- NEW: Internal Models for Features ---
-// 1. Track used proof images to prevent duplicates
+// --- INTERNAL MODELS ---
+// 1. ProofHash: To prevent duplicate image uploads
 const proofHashSchema = new mongoose.Schema({
     hash: { type: String, required: true, unique: true },
     orderId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Order' },
@@ -22,7 +22,7 @@ const proofHashSchema = new mongoose.Schema({
 });
 const ProofHash = mongoose.models.ProofHash || mongoose.model('ProofHash', proofHashSchema);
 
-// 2. Store notifications for the Admin
+// 2. AdminNotification: To notify admin dashboard
 const adminNotifSchema = new mongoose.Schema({
     message: String,
     type: { type: String, enum: ['info', 'warning', 'success', 'error'], default: 'info' },
@@ -31,7 +31,7 @@ const adminNotifSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 const AdminNotification = mongoose.models.AdminNotification || mongoose.model('AdminNotification', adminNotifSchema);
-// -----------------------------------------
+// -----------------------
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -136,7 +136,6 @@ async function expireUnpaidOrders() {
         console.error("Auto-Expire Error:", err);
     }
 }
-
 // Run expiration check every 60 seconds
 setInterval(expireUnpaidOrders, 60 * 1000); 
 
@@ -251,14 +250,50 @@ app.get('/api/admin/orders/proof/:id', async (req, res) => {
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
+// ✅ UPDATED: Reject Payment & Restock Items
 app.put('/api/admin/orders/:id/reject', async (req, res) => {
     try {
         const { reason } = req.body;
-        const order = await Order.findByIdAndUpdate(req.params.id, { status: 'Payment Rejected', rejectionReason: reason || 'Invalid payment proof.' }, { new: true });
+        
+        // 1. Update Order Status
+        const order = await Order.findByIdAndUpdate(
+            req.params.id, 
+            { 
+                status: 'Payment Rejected', 
+                rejectionReason: reason || 'Invalid payment proof.'
+            }, 
+            { new: true }
+        );
+        
         if (!order) return res.status(404).json({ message: 'Order not found' });
-        await User.findByIdAndUpdate(order.userId, { $push: { notifications: { id: 'rej_' + Date.now(), title: 'Payment Rejected', message: `Order #${order._id.toString().slice(-6)} proof rejected: ${reason}`, icon: 'alert-circle', color: 'red', timestamp: Date.now(), seen: false } } });
-        res.json({ success: true, message: 'Order rejected and user notified' });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+
+        // 2. 🟢 RESTOCK LOGIC: Set status back to 'Available' for all items in order
+        const itemIds = order.items.map(item => item._id);
+        if (itemIds.length > 0) {
+            await Livestock.updateMany(
+                { _id: { $in: itemIds } }, 
+                { $set: { status: 'Available' } }
+            );
+        }
+
+        // 3. Notify User
+        await User.findByIdAndUpdate(order.userId, { 
+            $push: { notifications: {
+                id: 'rej_' + Date.now(), 
+                title: 'Order Cancelled', 
+                message: `Order #${order._id.toString().slice(-6)} rejected: ${reason}. Items have been restocked.`,
+                icon: 'x-circle', 
+                color: 'red', 
+                timestamp: Date.now(), 
+                seen: false
+            }}
+        });
+
+        res.json({ success: true, message: 'Order rejected and items returned to stock' });
+    } catch (err) { 
+        console.error("Reject Error:", err);
+        res.status(500).json({ error: err.message }); 
+    }
 });
 
 app.put('/api/admin/orders/:id', async (req, res) => {
