@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-key-123';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/livestockmart';
 
-// --- SERVERLESS MONGODB CONNECTION (Fixes 500 Errors) ---
+// --- SERVERLESS MONGODB CONNECTION ---
 let cached = global.mongoose;
 
 if (!cached) {
@@ -62,6 +62,7 @@ app.use(async (req, res, next) => {
         res.status(500).json({ error: "Database connection failed" });
     }
 });
+// -------------------------------------
 
 const upload = multer({ 
     storage: multer.memoryStorage(),
@@ -193,18 +194,6 @@ app.put('/api/user/state', authMiddleware, async (req, res) => {
     }
 });
 
-// --- NOTIFICATION ROUTES (Fixes 404 Error) ---
-app.get('/api/notifications', authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.json(user.notifications || []);
-    } catch (err) {
-        console.error("Notification Error:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // --- LIVESTOCK ROUTES ---
 app.get('/api/livestock', async (req, res) => {
     try {
@@ -304,6 +293,7 @@ app.get('/api/admin/orders', async (req, res) => {
     }
 });
 
+// NEW: Serve Payment Proof
 app.get('/api/admin/orders/proof/:id', async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
@@ -316,6 +306,7 @@ app.get('/api/admin/orders/proof/:id', async (req, res) => {
     }
 });
 
+// NEW: Reject Payment with Reason & Notification
 app.put('/api/admin/orders/:id/reject', async (req, res) => {
     try {
         const { reason } = req.body;
@@ -382,6 +373,7 @@ app.get('/api/orders', authMiddleware, async (req, res) => {
     }
 });
 
+// NEW: User Re-upload Proof
 app.put('/api/orders/:id/reupload', authMiddleware, upload.single('paymentProof'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).send('No file uploaded');
@@ -407,6 +399,7 @@ app.put('/api/orders/:id/reupload', authMiddleware, upload.single('paymentProof'
 
 app.post('/api/orders', authMiddleware, upload.single('paymentProof'), async (req, res) => {
     try {
+        // Since we are using FormData on frontend, items and address are sent as strings
         const items = req.body.items ? JSON.parse(req.body.items) : [];
         const address = req.body.address ? JSON.parse(req.body.address) : {};
         const total = req.body.total;
@@ -417,6 +410,7 @@ app.post('/api/orders', authMiddleware, upload.single('paymentProof'), async (re
             contentType: req.file.mimetype
         } : undefined;
 
+        // 1. Create the Order
         const newOrder = new Order({ 
             items,
             address,
@@ -428,6 +422,7 @@ app.post('/api/orders', authMiddleware, upload.single('paymentProof'), async (re
         });
         await newOrder.save();
 
+        // 2. Mark purchased items as 'Sold' in Inventory
         const itemIds = items.map(item => item._id);
         if (itemIds.length > 0) {
             await Livestock.updateMany(
@@ -436,6 +431,7 @@ app.post('/api/orders', authMiddleware, upload.single('paymentProof'), async (re
             );
         }
 
+        // 3. Clear User's Cart
         await User.findByIdAndUpdate(req.user.id, { $set: { cart: [] } });
         
         res.status(201).json(newOrder);
@@ -451,9 +447,11 @@ app.put('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
         if (!order) return res.status(404).json({ message: 'Order not found' });
         if (order.status !== 'Processing') return res.status(400).json({ message: 'Cannot cancel order' });
 
+        // 1. Update Order Status
         order.status = 'Cancelled';
         await order.save();
 
+        // 2. Restock Items (Mark as 'Available')
         const itemIds = order.items.map(item => item._id);
         if (itemIds.length > 0) {
             await Livestock.updateMany(
@@ -484,7 +482,9 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // --- VERCEL EXPORT ---
+// IMPORTANT: Vercel requires exporting the app, not just listening
 if (require.main === module) {
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 }
+
 module.exports = app;
