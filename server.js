@@ -5,7 +5,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const crypto = require('crypto'); // NEW: For hashing files
+const crypto = require('crypto'); // NEW: For hashing files to detect duplicates
 require('dotenv').config();
 
 // Models
@@ -137,11 +137,8 @@ async function expireUnpaidOrders() {
     }
 }
 
-// Run expiration check every 60 seconds (if server stays alive)
-// Note: On Vercel serverless, this only runs when an API is hit if we hook it there.
+// Run expiration check every 60 seconds
 setInterval(expireUnpaidOrders, 60 * 1000); 
-// -------------------------------------
-
 
 // --- AUTH ROUTES ---
 app.post('/api/auth/register', async (req, res) => {
@@ -239,6 +236,7 @@ app.get('/api/admin/orders', async (req, res) => {
     try {
         // Trigger lazy cleanup on fetch to ensure admin sees up-to-date states
         await expireUnpaidOrders();
+        // Exclude image data for performance
         const orders = await Order.find({}, '-paymentProof.data').sort({ createdAt: -1 });
         res.json({ orders });
     } catch (err) { res.status(500).json({ message: 'Failed to load orders', error: err.message }); }
@@ -298,7 +296,6 @@ app.put('/api/orders/:id/reupload', authMiddleware, upload.single('paymentProof'
         // 🔒 DUPLICATE CHECK
         const fileHash = getFileHash(req.file.buffer);
         const existingProof = await ProofHash.findOne({ hash: fileHash });
-        // Allow re-uploading same image for the SAME order (in case of accidental glitch), but not different order
         if (existingProof && existingProof.orderId.toString() !== req.params.id) {
             return res.status(400).json({ message: 'Duplicate proof detected! This image has already been used.' });
         }
@@ -312,7 +309,6 @@ app.put('/api/orders/:id/reupload', authMiddleware, upload.single('paymentProof'
             paymentProof: { data: req.file.buffer, contentType: req.file.mimetype }
         });
 
-        // Update or Create Hash Record
         await ProofHash.findOneAndUpdate(
             { orderId: order._id }, 
             { hash: fileHash, orderId: order._id }, 
@@ -393,7 +389,7 @@ app.put('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
             await Livestock.updateMany({ _id: { $in: itemIds } }, { $set: { status: 'Available' } });
         }
         
-        // Remove hash if cancelled so user can potentially reuse proof (optional, but good for UX if they made a mistake)
+        // Remove hash so proof can be reused if order is cancelled
         await ProofHash.findOneAndDelete({ orderId: order._id });
 
         res.json({ success: true, message: 'Order cancelled & items restocked' });
