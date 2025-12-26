@@ -284,8 +284,8 @@ app.delete('/api/admin/livestock/:id', async (req, res) => {
 
 app.get('/api/admin/orders', async (req, res) => {
     try {
-        // Exclude paymentProof blob to prevent 500/timeout
-        const orders = await Order.find({}, '-paymentProof').sort({ createdAt: -1 });
+        // FIX: Exclude only paymentProof.data (the image binary), keep the object structure
+        const orders = await Order.find({}, '-paymentProof.data').sort({ createdAt: -1 });
         res.json({ orders });
     } catch (err) {
         console.error("Admin Orders Error:", err);
@@ -364,8 +364,8 @@ app.get('/api/admin/users', async (req, res) => {
 // --- ORDER ROUTES ---
 app.get('/api/orders', authMiddleware, async (req, res) => {
     try {
-        // Exclude paymentProof here too for better performance
-        const orders = await Order.find({ userId: req.user.id }, '-paymentProof').sort({ createdAt: -1 });
+        // FIX: Exclude only paymentProof.data (the image binary), keep the object structure
+        const orders = await Order.find({ userId: req.user.id }, '-paymentProof.data').sort({ createdAt: -1 });
         res.json(orders);
     } catch (err) {
         console.error("User Orders Error:", err);
