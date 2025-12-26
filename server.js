@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-key-123';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/livestockmart';
 
-// --- SERVERLESS MONGODB CONNECTION FIX ---
+// --- SERVERLESS MONGODB CONNECTION (Fixes 500 Errors) ---
 let cached = global.mongoose;
 
 if (!cached) {
@@ -52,7 +52,7 @@ async function connectDB() {
   return cached.conn;
 }
 
-// Middleware to ensure DB is connected before every request
+// Middleware to ensure DB is connected before handling requests
 app.use(async (req, res, next) => {
     try {
         await connectDB();
@@ -62,7 +62,6 @@ app.use(async (req, res, next) => {
         res.status(500).json({ error: "Database connection failed" });
     }
 });
-// -----------------------------------------
 
 const upload = multer({ 
     storage: multer.memoryStorage(),
@@ -194,6 +193,18 @@ app.put('/api/user/state', authMiddleware, async (req, res) => {
     }
 });
 
+// --- NOTIFICATION ROUTES (Fixes 404 Error) ---
+app.get('/api/notifications', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.json(user.notifications || []);
+    } catch (err) {
+        console.error("Notification Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- LIVESTOCK ROUTES ---
 app.get('/api/livestock', async (req, res) => {
     try {
@@ -220,12 +231,12 @@ app.get('/api/livestock/image/:id', async (req, res) => {
 // --- ADMIN ROUTES ---
 app.get('/api/admin/livestock', async (req, res) => {
     try {
-        // Exclude image blob
+        // Exclude image blob to prevent 500/timeout on large data
         const livestock = await Livestock.find({}, '-image').sort({ createdAt: -1 });
         res.json({ livestock });
     } catch (err) {
         console.error("Admin Livestock Error:", err);
-        res.status(500).json({ message: 'Failed to load livestock' });
+        res.status(500).json({ message: 'Failed to load livestock', error: err.message });
     }
 });
 
@@ -267,7 +278,7 @@ app.put('/api/admin/livestock/:id', upload.single('image'), async (req, res) => 
         res.json(livestock);
     } catch (err) {
         console.error("Admin Update Item Error:", err);
-        res.status(500).json({ message: 'Update failed' });
+        res.status(500).json({ message: 'Update failed', error: err.message });
     }
 });
 
@@ -278,18 +289,18 @@ app.delete('/api/admin/livestock/:id', async (req, res) => {
         res.status(204).send();
     } catch (err) {
         console.error("Admin Delete Item Error:", err);
-        res.status(500).json({ message: 'Delete failed' });
+        res.status(500).json({ message: 'Delete failed', error: err.message });
     }
 });
 
 app.get('/api/admin/orders', async (req, res) => {
     try {
-        // Exclude paymentProof
+        // Exclude paymentProof blob to prevent 500/timeout
         const orders = await Order.find({}, '-paymentProof').sort({ createdAt: -1 });
         res.json({ orders });
     } catch (err) {
         console.error("Admin Orders Error:", err);
-        res.status(500).json({ message: 'Failed to load orders' });
+        res.status(500).json({ message: 'Failed to load orders', error: err.message });
     }
 });
 
@@ -319,6 +330,7 @@ app.put('/api/admin/orders/:id/reject', async (req, res) => {
         
         if (!order) return res.status(404).json({ message: 'Order not found' });
 
+        // Notify User
         await User.findByIdAndUpdate(order.userId, { 
             $push: { notifications: {
                 id: 'rej_' + Date.now(), 
@@ -343,7 +355,8 @@ app.put('/api/admin/orders/:id', async (req, res) => {
         const order = await Order.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
         res.json(order);
     } catch (err) {
-        res.status(500).json({ message: 'Update failed' });
+        console.error("Admin Order Update Error:", err);
+        res.status(500).json({ message: 'Update failed', error: err.message });
     }
 });
 
@@ -353,16 +366,18 @@ app.get('/api/admin/users', async (req, res) => {
         res.json({ users });
     } catch (err) {
         console.error("Admin Users Error:", err);
-        res.status(500).json({ message: 'Failed to load users' });
+        res.status(500).json({ message: 'Failed to load users', error: err.message });
     }
 });
 
 // --- ORDER ROUTES ---
 app.get('/api/orders', authMiddleware, async (req, res) => {
     try {
+        // Exclude paymentProof here too for better performance
         const orders = await Order.find({ userId: req.user.id }, '-paymentProof').sort({ createdAt: -1 });
         res.json(orders);
     } catch (err) {
+        console.error("User Orders Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -403,7 +418,11 @@ app.post('/api/orders', authMiddleware, upload.single('paymentProof'), async (re
         } : undefined;
 
         const newOrder = new Order({ 
-            items, address, total, date, paymentProof,
+            items,
+            address,
+            total,
+            date,
+            paymentProof,
             userId: req.user.id, 
             customer: req.user.name 
         });
@@ -411,7 +430,10 @@ app.post('/api/orders', authMiddleware, upload.single('paymentProof'), async (re
 
         const itemIds = items.map(item => item._id);
         if (itemIds.length > 0) {
-            await Livestock.updateMany({ _id: { $in: itemIds } }, { $set: { status: 'Sold' } });
+            await Livestock.updateMany(
+                { _id: { $in: itemIds } }, 
+                { $set: { status: 'Sold' } }
+            );
         }
 
         await User.findByIdAndUpdate(req.user.id, { $set: { cart: [] } });
@@ -434,7 +456,10 @@ app.put('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
 
         const itemIds = order.items.map(item => item._id);
         if (itemIds.length > 0) {
-            await Livestock.updateMany({ _id: { $in: itemIds } }, { $set: { status: 'Available' } });
+            await Livestock.updateMany(
+                { _id: { $in: itemIds } }, 
+                { $set: { status: 'Available' } }
+            );
         }
 
         res.json({ success: true, message: 'Order cancelled & items restocked' });
@@ -454,35 +479,12 @@ app.post('/api/payment/create', authMiddleware, (req, res) => {
 
 app.post('/api/payment/confirm', authMiddleware, (req, res) => res.json({ success: true }));
 
-// --- MISSING ROUTE FIX: NOTIFICATIONS ---
-app.get('/api/notifications', authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.json(user.notifications || []);
-    } catch (err) {
-        console.error("Notification Error:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // --- FALLBACK HANDLERS ---
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-process.on('uncaughtException', (err) => {
-    console.error('🔥 UNCAUGHT EXCEPTION! Shutting down...', err);
-    process.exit(1);
-});
-
-process.on('unhandledRejection', (err) => {
-    console.error('🔥 UNHANDLED REJECTION! Shutting down...', err);
-    process.exit(1);
-});
-
-// IMPORTANT: Vercel requires exporting the app
+// --- VERCEL EXPORT ---
 if (require.main === module) {
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 }
-
 module.exports = app;
