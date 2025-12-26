@@ -15,26 +15,54 @@ const User = require('./models/User');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-key-123';
-
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/livestockmart';
 
-const connectDB = async () => {
+// --- SERVERLESS MONGODB CONNECTION ---
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function connectDB() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    };
+
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('✅ New MongoDB Connection Established');
+      return mongoose;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+
+  return cached.conn;
+}
+
+// Middleware to ensure DB is connected before handling requests
+app.use(async (req, res, next) => {
     try {
-        await mongoose.connect(MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000, 
-            socketTimeoutMS: 45000, 
-        });
-        console.log('✅ Connected to MongoDB');
-    } catch (err) {
-        console.error('❌ Initial MongoDB Connection Error:', err);
+        await connectDB();
+        next();
+    } catch (error) {
+        console.error("❌ Database Connection Error:", error);
+        res.status(500).json({ error: "Database connection failed" });
     }
-};
-
-mongoose.connection.on('disconnected', () => console.warn('⚠️ MongoDB disconnected! Attempting reconnect...'));
-mongoose.connection.on('reconnected', () => console.log('✅ MongoDB reconnected'));
-mongoose.connection.on('error', (err) => console.error('❌ MongoDB connection error:', err));
-
-connectDB();
+});
+// -------------------------------------
 
 const upload = multer({ 
     storage: multer.memoryStorage(),
@@ -192,10 +220,12 @@ app.get('/api/livestock/image/:id', async (req, res) => {
 // --- ADMIN ROUTES ---
 app.get('/api/admin/livestock', async (req, res) => {
     try {
-        const livestock = await Livestock.find({}).sort({ createdAt: -1 });
+        // Exclude image blob to prevent 500/timeout on large data
+        const livestock = await Livestock.find({}, '-image').sort({ createdAt: -1 });
         res.json({ livestock });
     } catch (err) {
-        res.status(500).json({ message: 'Failed to load livestock' });
+        console.error("Admin Livestock Error:", err);
+        res.status(500).json({ message: 'Failed to load livestock', error: err.message });
     }
 });
 
@@ -219,6 +249,7 @@ app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
         await newItem.save();
         res.status(201).json(newItem);
     } catch (err) {
+        console.error("Admin Add Item Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -235,7 +266,8 @@ app.put('/api/admin/livestock/:id', upload.single('image'), async (req, res) => 
         const livestock = await Livestock.findByIdAndUpdate(req.params.id, updates, { new: true });
         res.json(livestock);
     } catch (err) {
-        res.status(500).json({ message: 'Update failed' });
+        console.error("Admin Update Item Error:", err);
+        res.status(500).json({ message: 'Update failed', error: err.message });
     }
 });
 
@@ -245,16 +277,19 @@ app.delete('/api/admin/livestock/:id', async (req, res) => {
         await Livestock.findByIdAndDelete(req.params.id);
         res.status(204).send();
     } catch (err) {
-        res.status(500).json({ message: 'Delete failed' });
+        console.error("Admin Delete Item Error:", err);
+        res.status(500).json({ message: 'Delete failed', error: err.message });
     }
 });
 
 app.get('/api/admin/orders', async (req, res) => {
     try {
-        const orders = await Order.find({}).sort({ createdAt: -1 });
+        // Exclude paymentProof blob to prevent 500/timeout
+        const orders = await Order.find({}, '-paymentProof').sort({ createdAt: -1 });
         res.json({ orders });
     } catch (err) {
-        res.status(500).json({ message: 'Failed to load orders' });
+        console.error("Admin Orders Error:", err);
+        res.status(500).json({ message: 'Failed to load orders', error: err.message });
     }
 });
 
@@ -311,7 +346,8 @@ app.put('/api/admin/orders/:id', async (req, res) => {
         const order = await Order.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
         res.json(order);
     } catch (err) {
-        res.status(500).json({ message: 'Update failed' });
+        console.error("Admin Order Update Error:", err);
+        res.status(500).json({ message: 'Update failed', error: err.message });
     }
 });
 
@@ -320,16 +356,19 @@ app.get('/api/admin/users', async (req, res) => {
         const users = await User.find({}, 'name email createdAt').sort({ createdAt: -1 });
         res.json({ users });
     } catch (err) {
-        res.status(500).json({ message: 'Failed to load users' });
+        console.error("Admin Users Error:", err);
+        res.status(500).json({ message: 'Failed to load users', error: err.message });
     }
 });
 
 // --- ORDER ROUTES ---
 app.get('/api/orders', authMiddleware, async (req, res) => {
     try {
-        const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
+        // Exclude paymentProof here too for better performance
+        const orders = await Order.find({ userId: req.user.id }, '-paymentProof').sort({ createdAt: -1 });
         res.json(orders);
     } catch (err) {
+        console.error("User Orders Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -442,17 +481,10 @@ app.post('/api/payment/confirm', authMiddleware, (req, res) => res.json({ succes
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-process.on('uncaughtException', (err) => {
-    console.error('🔥 UNCAUGHT EXCEPTION! Shutting down...', err);
-    process.exit(1);
-});
+// --- VERCEL EXPORT ---
+// IMPORTANT: Vercel requires exporting the app, not just listening
+if (require.main === module) {
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+}
 
-process.on('unhandledRejection', (err) => {
-    console.error('🔥 UNHANDLED REJECTION! Shutting down...', err);
-    process.exit(1);
-});
-
-const server = app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-server.keepAliveTimeout = 120 * 1000;
-server.headersTimeout = 120 * 1000;
+module.exports = app;
