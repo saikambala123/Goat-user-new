@@ -283,8 +283,8 @@
 
         <main id="main-content" class="flex-1 flex flex-col relative overflow-hidden w-full h-full">
             <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 md:px-8 py-4 flex justify-between items-center z-10 sticky top-0 flex-shrink-0 transition-colors">
-                <div class="flex items-center gap-3 flex-1 min-w-0 mr-2">
-                    <button onclick="toggleSidebar()" class="md:hidden text-gray-600 dark:text-gray-300 hover:text-green-600 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="md:hidden text-gray-600 dark:text-gray-300 hover:text-green-600">
                         <i data-lucide="menu" class="w-6 h-6"></i>
                     </button>
                     <div class="overflow-hidden">
@@ -292,8 +292,7 @@
                         <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 hidden sm:block" id="current-date"></p>
                     </div>
                 </div>
-
-                <div class="flex items-center gap-2 md:gap-6 flex-shrink-0">
+                <div class="flex items-center gap-3 md:gap-6">
                     
                     <div class="relative">
                         <button onclick="document.getElementById('lang-menu').classList.toggle('hidden')" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition">
@@ -311,7 +310,7 @@
                             <span id="notification-badge" class="absolute top-1 right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full hidden pointer-events-none">0</span>
                         </button>
                         <div id="notification-menu"
-                             class="absolute right-[-50px] md:right-0 mt-2 w-72 max-w-[90vw] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl py-2 hidden origin-top-right transform transition-all duration-300 scale-95 opacity-0 z-50">
+                             class="absolute right-[-60px] md:right-0 mt-2 w-72 max-w-[92vw] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl py-2 hidden origin-top-right transform transition-all duration-300 scale-95 opacity-0 z-50">
                             <div class="flex justify-between items-center px-4 pt-2 pb-1 border-b border-gray-100 dark:border-gray-700">
                                 <h4 class="font-semibold text-sm text-gray-800 dark:text-gray-200">Notifications</h4>
                                 <button onclick="clearAllNotifications()" class="text-xs text-blue-500 hover:text-blue-700 disabled:opacity-50" id="clear-all-btn" disabled>Clear All</button>
@@ -320,9 +319,9 @@
                         </div>
                     </div>
                     
-                    <div class="relative cursor-pointer p-1" onclick="router('cart')">
+                    <div class="relative cursor-pointer" onclick="router('cart')">
                         <i data-lucide="shopping-cart" class="w-6 h-6 text-gray-600 dark:text-gray-300"></i>
-                        <span id="header-cart-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full hidden">0</span>
+                        <span id="header-cart-badge" class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full hidden">0</span>
                     </div>
                     
                     <div class="relative">
@@ -552,7 +551,7 @@
     </div>
     
     <script>
-        const API_URL = 'https://goat-user.vercel.app/api';
+        const API_URL = 'https://goat-user-new.vercel.app/api';
         let livestock = [];
         let orders = [];
         let cart = []; 
@@ -1338,15 +1337,11 @@
                 const itemsHtml = o.items.map(i => {
                     const fullItem = livestock.find(l => l._id === i._id || l.id === i._id);
                     const weight = i.weight || (fullItem ? fullItem.weight : 'N/A');
-                    
-                    // --- IMAGE ERROR FIX ---
-                    const itemId = i._id || i.id;
-                    const imageUrl = itemId ? `${API_URL}/livestock/image/${itemId}` : 'https://via.placeholder.com/80?text=No+Img';
-
+                    const imageUrl = `${API_URL}/livestock/image/${i._id}`;
                     return `
                         <div class="flex gap-4 mb-4 border-b border-gray-100 dark:border-gray-600 last:border-0 pb-4 last:pb-0">
                             <div class="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-lg flex-shrink-0 overflow-hidden border border-gray-200 dark:border-gray-600">
-                                <img src="${imageUrl}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/80?text=No+Img'">
+                                <img src="${imageUrl}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/80?text=Img'">
                             </div>
                             <div class="flex-1">
                                 <p class="font-bold text-gray-800 dark:text-white">${i.name}</p>
