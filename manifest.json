@@ -1,8 +1,7 @@
 {
-  "name": "LivestockMart User App",
+  "name": "LivestockMart",
   "short_name": "LivestockMart",
-  "description": "Premium Marketplace for Goats and Sheep",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#111827",
   "theme_color": "#10b981",
@@ -10,8 +9,7 @@
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2153/2153075.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2153/2153075.png",
