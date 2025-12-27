@@ -1,0 +1,20 @@
+{
+  "name": "LivestockMart User App",
+  "short_name": "LivestockMart",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2153/2153075.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2153/2153075.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
