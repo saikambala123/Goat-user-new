@@ -2292,12 +2292,18 @@
     </button>
   </div>
 </div>
-
 <script>
 /* ===== CHATBOT AUTO BIND ===== */
 const chatbotBox = document.getElementById("chatbot-box");
 const msgs = document.getElementById("chatbot-messages");
 const quickBox = document.getElementById("quick-replies");
+
+// --- UPDATED LINKS ---
+const WHATSAPP_CHANNEL_LINK = "https://whatsapp.com/channel/0029VaD8mYTAInPij7sCeR2K";
+const YOUTUBE_LINK = "https://www.youtube.com/@livestocksheepsandgoatssel110";
+
+// --- UPDATED CONTACTS TEXT ---
+const CONTACT_TEXT = "📞 9000274439 - Suryachandram garu\n📞 9908817975 - Srinivasa Rao garu";
 
 function openChatbot(){
   chatbotBox.classList.remove("hidden");
@@ -2315,68 +2321,137 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const btn = supportView.querySelector("button");
     if(btn) btn.addEventListener("click", openChatbot);
   }
+  
+  // Update the main WhatsApp button to point to the Channel
+  const waBtn = document.getElementById("whatsapp-btn");
+  if(waBtn) {
+    waBtn.href = WHATSAPP_CHANNEL_LINK;
+    waBtn.innerText = "💬 Join WhatsApp Channel"; // Default text, will be overwritten by language set
+  }
 });
 
-const LANG={
-  en:{header:"🐐 Goat & Sheep Support",input:"Type your message...",
-    wa:"💬 WhatsApp Us",
-    quick:["Goat","Sheep","Price","YouTube","Address","Contact"],
-    reply:{
-      goat:"🐐 Healthy goats available.",
-      sheep:"🐑 Quality sheep available.",
-      price:"💰 Prices depend on breed.",
-      youtube:"▶️ Visit our YouTube channel.",
-      address:"📍 K Pentapadu Rd, AP",
-      contact:"📞 Call / WhatsApp us",
-      default:"Please ask about goats or sheep."
-    }}
+const LANG = {
+  en: {
+    header: "🐐 Goat & Sheep Support",
+    input: "Type your message...",
+    wa: "💬 Join WhatsApp Channel",
+    quick: ["Goat", "Sheep", "Price", "YouTube", "Address", "Contact"],
+    reply: {
+      goat: "🐐 Healthy goats available.",
+      sheep: "🐑 Quality sheep available.",
+      price: "💰 Prices depend on breed and weight.",
+      youtube: `▶️ Watch our videos here:\n<a href="${YOUTUBE_LINK}" target="_blank" class="text-blue-600 underline">Click to Visit YouTube</a>`,
+      address: "📍 Kaspapentapadu near high school, West Godavari, Andhra Pradesh", 
+      contact: CONTACT_TEXT,
+      default: "Please ask about goats or sheep."
+    }
+  },
+  te: {
+    header: "🐐 మేక & గొర్రె మద్దతు",
+    input: "మీ సందేశాన్ని టైప్ చేయండి...",
+    wa: "💬 వాట్సాప్ ఛానెల్‌లో చేరండి",
+    quick: ["మేక", "గొర్రె", "ధర", "యూట్యూబ్", "చిరునామా", "సంప్రదించండి"],
+    reply: {
+      goat: "🐐 ఆరోగ్యకరమైన మేకలు అందుబాటులో ఉన్నాయి.",
+      sheep: "🐑 నాణ్యమైన గొర్రెలు అందుబాటులో ఉన్నాయి.",
+      price: "💰 ధరలు జాతి మరియు బరువుపై ఆధారపడి ఉంటాయి.",
+      youtube: `▶️ మా వీడియోలను ఇక్కడ చూడండి:\n<a href="${YOUTUBE_LINK}" target="_blank" class="text-blue-600 underline">YouTube లింక్</a>`,
+      address: "📍 కస్పాపెంటపాడు హై స్కూల్ దగ్గర, పశ్చిమ గోదావరి, ఆంధ్రప్రదేశ్",
+      contact: CONTACT_TEXT,
+      default: "దయచేసి మేకలు లేదా గొర్రెల గురించి అడగండి."
+    }
+  },
+  hi: {
+    header: "🐐 बकरी और भेड़ सहायता",
+    input: "अपना संदेश लिखें...",
+    wa: "💬 व्हाट्सएप चैनल से जुड़ें",
+    quick: ["बकरी", "भेड़", "कीमत", "यूट्यूब", "पता", "संपर्क"],
+    reply: {
+      goat: "🐐 स्वस्थ बकरियां उपलब्ध हैं।",
+      sheep: "🐑 अच्छी नस्ल की भेड़ें उपलब्ध हैं।",
+      price: "💰 कीमतें नस्ल और वजन पर निर्भर करती हैं।",
+      youtube: `▶️ हमारे वीडियो यहाँ देखें:\n<a href="${YOUTUBE_LINK}" target="_blank" class="text-blue-600 underline">YouTube लिंक</a>`,
+      address: "📍 कस्पापेंटापाडु हाई स्कूल के पास, पश्चिम गोदावरी, आंध्र प्रदेश",
+      contact: CONTACT_TEXT,
+      default: "कृपया बकरियों या भेड़ों के बारे में पूछें।"
+    }
+  },
+  ta: {
+    header: "🐐 ஆடு & செம்மறி ஆடு ஆதரவு",
+    input: "உங்கள் செய்தியை தட்டச்சு செய்யவும்...",
+    wa: "💬 வாட்ஸ்அப் சேனலில் சேரவும்",
+    quick: ["ஆடு", "செம்மறி", "விலை", "யூடியூப்", "முகவரி", "தொடர்பு"],
+    reply: {
+      goat: "🐐 ஆரோக்கியமான ஆடுகள் உள்ளன.",
+      sheep: "🐑 தரமான செம்மறி ஆடுகள் உள்ளன.",
+      price: "💰 விலைகள் இனம் மற்றும் எடையைப் பொறுத்தது.",
+      youtube: `▶️ எங்கள் வீடியோக்களை இங்கே பார்க்கவும்:\n<a href="${YOUTUBE_LINK}" target="_blank" class="text-blue-600 underline">YouTube இணைப்பு</a>`,
+      address: "📍 கஸ்பாபெண்டபாடு உயர்நிலைப் பள்ளி அருகில், மேற்கு கோதாவரி, ஆந்திர பிரதேசம்",
+      contact: CONTACT_TEXT,
+      default: "ஆடுகள் அல்லது செம்மறி ஆடுகள் பற்றி கேட்கவும்."
+    }
+  }
 };
 
-let CUR="en";
-function setLang(l){
-  CUR=l;
-  document.getElementById("chatbot-header").innerText=LANG[l].header;
-  document.getElementById("chatbot-text").placeholder=LANG[l].input;
-  document.getElementById("whatsapp-btn").innerText=LANG[l].wa;
-  quickBox.innerHTML="";
-  LANG[l].quick.forEach(q=>{
-    const b=document.createElement("button");
-    b.innerText=q;
-    b.className="px-3 py-1 text-xs rounded bg-gray-300 dark:bg-gray-700";
-    b.onclick=()=>quick(q);
+let CUR = "en";
+
+function setLang(l) {
+  if (!LANG[l]) return;
+  CUR = l;
+  
+  document.getElementById("chatbot-header").innerText = LANG[l].header;
+  document.getElementById("chatbot-text").placeholder = LANG[l].input;
+  
+  const waBtn = document.getElementById("whatsapp-btn");
+  if(waBtn) waBtn.innerText = LANG[l].wa;
+  
+  quickBox.innerHTML = "";
+  LANG[l].quick.forEach(q => {
+    const b = document.createElement("button");
+    b.innerText = q;
+    b.className = "px-3 py-1 text-xs rounded bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition";
+    b.onclick = () => quick(q);
     quickBox.appendChild(b);
   });
 }
 
-function addMsg(t,u){
-  const d=document.createElement("div");
-  d.className=`max-w-[80%] my-1 px-3 py-2 rounded text-sm ${u?"bg-blue-600 text-white ml-auto":"bg-gray-300 dark:bg-gray-700"}`;
-  d.innerText=t;
+function addMsg(t, u) {
+  const d = document.createElement("div");
+  d.className = `max-w-[85%] my-1 px-3 py-2 rounded text-sm break-words ${u ? "bg-blue-600 text-white ml-auto" : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100"}`;
+  // Allow HTML for links (like YouTube)
+  d.innerHTML = t.replace(/\n/g, "<br>");
   msgs.appendChild(d);
-  msgs.scrollTop=msgs.scrollHeight;
+  msgs.scrollTop = msgs.scrollHeight;
 }
-function botReply(t){
-  t=t.toLowerCase();
-  const r=LANG[CUR].reply;
-  if(t.includes("goat")) return r.goat;
-  if(t.includes("sheep")) return r.sheep;
-  if(t.includes("price")) return r.price;
-  if(t.includes("youtube")) return r.youtube;
-  if(t.includes("address")) return r.address;
-  if(t.includes("contact")) return r.contact;
+
+function botReply(t) {
+  t = t.toLowerCase();
+  const r = LANG[CUR].reply;
+  
+  if (t.includes("goat") || t.includes("మేక") || t.includes("बकरी") || t.includes("ஆடு")) return r.goat;
+  if (t.includes("sheep") || t.includes("గొర్రె") || t.includes("भेड़") || t.includes("செம்மறி")) return r.sheep;
+  if (t.includes("price") || t.includes("ధర") || t.includes("कीमत") || t.includes("விலை")) return r.price;
+  if (t.includes("youtube") || t.includes("యూట్యూబ్") || t.includes("यूट्यूब") || t.includes("யூடியூப்")) return r.youtube;
+  if (t.includes("address") || t.includes("చిరునామా") || t.includes("पता") || t.includes("முகவரி")) return r.address;
+  if (t.includes("contact") || t.includes("సంప్రదించండి") || t.includes("संपर्क") || t.includes("தொடர்பு")) return r.contact;
+  
   return r.default;
 }
-function sendChat(){
-  const i=document.getElementById("chatbot-text");
-  if(!i.value.trim()) return;
-  addMsg(i.value,true);
-  addMsg(botReply(i.value),false);
-  i.value="";
+
+function sendChat() {
+  const i = document.getElementById("chatbot-text");
+  if (!i.value.trim()) return;
+  addMsg(i.value, true);
+  setTimeout(() => addMsg(botReply(i.value), false), 300);
+  i.value = "";
 }
-function quick(t){
-  addMsg(t,true);
-  addMsg(botReply(t),false);
+
+function quick(t) {
+  addMsg(t, true);
+  setTimeout(() => addMsg(botReply(t), false), 300);
 }
+
+// Initialize
 setLang("en");
 </script>
 
