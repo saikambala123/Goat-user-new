@@ -468,11 +468,47 @@
                 </div>
 
                 <div id="view-orders" class="hidden space-y-6">
-                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 md:p-6 transition-colors">
-                        <h3 class="font-bold text-lg mb-6 text-gray-800 dark:text-white lang-orders">Order History</h3>
-                        <div class="space-y-4" id="orders-list-full"></div>
-                    </div>
-                </div>
+  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 md:p-6 transition-colors">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="font-bold text-lg text-gray-800 dark:text-white lang-orders">
+        Order History
+      </h3>
+
+      <div class="relative">
+        <button id="order-filter-toggle"
+                class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-gray-600 
+                       rounded-lg text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800
+                       hover:bg-gray-50 dark:hover:bg-gray-700">
+          <span id="order-filter-label">All Orders</span>
+          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </button>
+
+        <div id="order-filter-menu"
+             class="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200
+                    dark:border-gray-700 rounded-lg shadow-lg text-sm py-1 hidden z-50">
+          <button onclick="setOrderFilter('all')"
+                  class="w-full text-left px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700">
+            All Orders
+          </button>
+          <button onclick="setOrderFilter('active')"
+                  class="w-full text-left px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700">
+            Active Orders
+          </button>
+          <button onclick="setOrderFilter('cancelled')"
+                  class="w-full text-left px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700">
+            Cancelled Orders
+          </button>
+          <button onclick="setOrderFilter('delivered')"
+                  class="w-full text-left px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700">
+            Delivered Orders
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4" id="orders-list-full"></div>
+  </div>
+</div>
 
                 <div id="view-wishlist" class="hidden space-y-6">
                      <div class="flex justify-between items-center mb-4">
@@ -567,7 +603,9 @@
         let editingAddressIndex = -1;
         let autoRefreshInterval = null; 
         let proofUploaded = false; 
-        let isSavingState = false; // Fix: Flag to prevent race conditions during sync
+        let isSavingState = false;
+let currentOrderFilter = 'all';
+let isConfirmingPayment = false; // Fix: Flag to prevent race conditions during sync
         
         // --- Language & Notifications ---
         let currentLang = localStorage.getItem('lm_lang') || 'en';
@@ -1332,71 +1370,167 @@
             lucide.createIcons();
         }
         function renderOrders() {
-            const container = document.getElementById('orders-list-full');
-            if (!container) return;
-            if (orders.length === 0) {
-                container.innerHTML = `<div class="text-center text-gray-500 dark:text-gray-400">No past orders.</div>`;
-                return;
-            }
-            const t = translations[currentLang];
-            container.innerHTML = orders.map(o => {
-                const itemsHtml = o.items.map(i => {
-                    const fullItem = livestock.find(l => l._id === i._id || l.id === i._id);
-                    const weight = i.weight || (fullItem ? fullItem.weight : 'N/A');
-                    const imageUrl = `${API_URL}/livestock/image/${i._id}`;
-                    return `
-                        <div class="flex gap-4 mb-4 border-b border-gray-100 dark:border-gray-600 last:border-0 pb-4 last:pb-0">
-                            <div class="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-lg flex-shrink-0 overflow-hidden border border-gray-200 dark:border-gray-600">
-                                <img src="${imageUrl}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/80?text=Img'">
-                            </div>
-                            <div class="flex-1">
-                                <p class="font-bold text-gray-800 dark:text-white">${i.name}</p>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">${t.breed}: ${i.breed || 'N/A'}</p>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">${t.weight}: ${weight !== 'N/A' ? weight + ' kg' : 'N/A'}</p>
-                                <p class="text-sm font-semibold text-green-700 dark:text-green-400 mt-1">${formatINR(i.price)}</p>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                
-                const addressHtml = o.address ? `<div><strong>Ship to:</strong> ${o.address.name}, +91 ${o.address.phone}</div>
-                    <div>${o.address.line1 || o.address.line}${o.address.line2 ? '<br>' + o.address.line2 : ''}</div>
-                    <div>${o.address.city}, ${o.address.state} - ${o.address.pincode}</div>` : '';
-                
-                const trackBtn = (o.status !== 'Cancelled' && o.status !== 'Payment Rejected') ? `<button onclick="openTrackModal('${o._id}')" class="flex-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg text-sm hover:bg-blue-200 dark:hover:bg-blue-800/40 transition">Track Order</button>` : '';
-                const cancelBtn = o.status === 'Processing' ? `<button onclick="cancelOrder('${o._id}')" class="flex-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-3 py-2 rounded-lg text-sm hover:bg-red-200 dark:hover:bg-red-800/40 transition">Cancel Order</button>` : '';
-                
-                return `
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 mb-4 transition-colors">
-                        <div class="flex flex-col sm:flex-row justify-between items-start mb-4 gap-2 border-b border-gray-100 dark:border-gray-600 pb-3">
-                            <div>
-                                <p class="font-bold text-gray-800 dark:text-white">Order #${String(o._id).slice(-6)}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">${o.date}</p>
-                            </div>
-                            <div class="text-left sm:text-right">
-                                <p class="font-bold text-green-700 dark:text-green-400">Total: ${formatINR(o.total)}</p>
-                                <span class="${getStatusColor(o.status)} text-xs px-2 py-1 rounded-full font-medium inline-block mt-1">${o.status}</span>
-                            </div>
-                        </div>
-                        ${itemsHtml}
-                        ${o.status === 'Payment Rejected' ? `
-                            <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800 mb-3">
-                                <p class="text-xs text-red-600 dark:text-red-400 font-bold mb-1">REASON: ${o.rejectionReason}</p>
-                                <button onclick="openReuploadUI('${o._id}', ${o.total})" class="w-full bg-red-600 text-white py-2 rounded-lg text-xs font-bold shadow">${t.reupload}</button>
-                            </div>
-                        ` : ''}
-                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-4 border-t dark:border-gray-600 pt-3">
-                            ${addressHtml}
-                        </div>
-                        <div class="flex gap-2">
-                            ${trackBtn}
-                            ${cancelBtn}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            lucide.createIcons();
-        }
+  const container = document.getElementById('orders-list-full');
+  if (!container) return;
+
+  // Apply filter
+  let visibleOrders = orders || [];
+
+  if (currentOrderFilter === 'active') {
+    visibleOrders = visibleOrders.filter(o =>
+      !['Cancelled', 'Delivered', 'Payment Rejected'].includes(o.status)
+    );
+  } else if (currentOrderFilter === 'cancelled') {
+    visibleOrders = visibleOrders.filter(o => o.status === 'Cancelled');
+  } else if (currentOrderFilter === 'delivered') {
+    visibleOrders = visibleOrders.filter(o => o.status === 'Delivered');
+  }
+
+  if (!visibleOrders.length) {
+    container.innerHTML = `
+      <div class="text-center text-gray-500 dark:text-gray-400">
+        No orders found for this filter.
+      </div>`;
+    return;
+  }
+
+  const t = translations[currentLang];
+
+  container.innerHTML = visibleOrders.map(o => {
+    const itemsHtml = o.items.map(i => {
+      const fullItem = livestock?.find(l => l.id === i.id) || i;
+      const weight = i.weight || (fullItem ? fullItem.weight : 'NA');
+      const animalType = i.type || (fullItem ? fullItem.type : 'NA');
+      const imageUrl = `${API_URL}/livestock/image/${i.id}`;
+
+      return `
+        <div class="flex gap-4 mb-4 border-b border-gray-100 dark:border-gray-600 last:border-0 pb-4 last:pb-0">
+          <div class="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-lg flex-shrink-0 overflow-hidden border border-gray-200 dark:border-gray-600">
+            <img src="${imageUrl}"
+                 alt="${i.name}"
+                 class="w-full h-full object-cover"
+                 loading="lazy"
+                 onerror="this.onerror=null;this.src='https://via.placeholder.com/80?text=Img';" />
+          </div>
+          <div class="flex-1">
+            <p class="font-bold text-gray-800 dark:text-white">${i.name}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Type: ${animalType || 'NA'}
+            </p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              ${t.breed} ${i.breed || 'NA'}
+            </p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              ${t.weight} ${weight && weight !== 'NA' ? weight + ' kg' : 'NA'}
+            </p>
+            <p class="text-sm font-semibold text-green-700 dark:text-green-400 mt-1">
+              ${formatINR(i.price)}
+            </p>
+          </div>
+        </div>`;
+    }).join('');
+
+    const addressHtml = o.address ? `
+      <div class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+        <div><strong>Ship to</strong> ${o.address.name}, +91 ${o.address.phone}</div>
+        <div>${o.address.line1}</div>
+        ${o.address.line2 ? `<div>${o.address.line2}</div>` : ''}
+        <div>${o.address.city}, ${o.address.state} - ${o.address.pincode}</div>
+        <button
+          class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300
+                 dark:border-gray-600 text-xs text-gray-700 dark:text-gray-200
+                 hover:bg-gray-100 dark:hover:bg-gray-700"
+          onclick="downloadOrderPdf('${o.id}')">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          Download PDF
+        </button>
+      </div>
+    ` : '';
+
+    const trackBtn = (o.status !== 'Cancelled' && o.status !== 'Payment Rejected')
+      ? `<button onclick="openTrackModal('${o.id}')"
+                 class="flex-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300
+                        px-3 py-2 rounded-lg text-sm hover:bg-blue-200 dark:hover:bg-blue-800/40 transition">
+           Track Order
+         </button>`
+      : '';
+
+    const cancelBtn = o.status === 'Processing'
+      ? `<button onclick="cancelOrder('${o.id}')"
+                 class="flex-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300
+                        px-3 py-2 rounded-lg text-sm hover:bg-red-200 dark:hover:bg-red-800/40 transition">
+           Cancel Order
+         </button>`
+      : '';
+
+    return `
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 mb-4 transition-colors">
+        <div class="flex flex-col sm:flex-row justify-between items-start mb-4 gap-2 border-b border-gray-100 dark:border-gray-600 pb-3">
+          <div>
+            <p class="font-bold text-gray-800 dark:text-white">Order #${String(o.id).slice(-6)}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">${o.date}</p>
+          </div>
+          <div class="text-left sm:text-right">
+            <p class="font-bold text-green-700 dark:text-green-400">Total ${formatINR(o.total)}</p>
+            <span class="${getStatusColor(o.status)} text-xs px-2 py-1 rounded-full font-medium inline-block mt-1">
+              ${o.status}
+            </span>
+          </div>
+        </div>
+
+        ${itemsHtml}
+        ${addressHtml}
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          ${trackBtn}
+          ${cancelBtn}
+        </div>
+      </div>`;
+  }).join('');
+
+  lucide.createIcons();
+}
+
+function setOrderFilter(filter) {
+  currentOrderFilter = filter;
+
+  const label = document.getElementById('order-filter-label');
+  if (label) {
+    if (filter === 'all') label.textContent = 'All Orders';
+    if (filter === 'active') label.textContent = 'Active Orders';
+    if (filter === 'cancelled') label.textContent = 'Cancelled Orders';
+    if (filter === 'delivered') label.textContent = 'Delivered Orders';
+  }
+
+  const menu = document.getElementById('order-filter-menu');
+  if (menu) menu.classList.add('hidden');
+
+  renderOrders();
+}
+
+function initOrderFilterDropdown() {
+  const toggle = document.getElementById('order-filter-toggle');
+  const menu = document.getElementById('order-filter-menu');
+  if (!toggle || !menu) return;
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!toggle.contains(e.target) && !menu.contains(e.target)) {
+      menu.classList.add('hidden');
+    }
+  });
+}
+
+function downloadOrderPdf(orderId) {
+  window.open(`${API_URL}/orders/${orderId}/invoice`, '_blank');
+}
+
+document.addEventListener('DOMContentLoaded', initOrderFilterDropdown);
+
         function renderWishlist() {
             const grid = document.getElementById('wishlist-grid');
             const items = livestock.filter(item => wishlist.includes(item._id)); 
@@ -2001,13 +2135,34 @@
             document.body.appendChild(payBox);
             lucide.createIcons();
 
-            document.getElementById('lm-paid-btn').onclick = function() {
-                if (!proofUploaded) {
-                    showToast('Please upload screenshot of proof', 'warning');
-                    return;
-                }
-                confirmPayment(paymentId, itemsToBuy, total);
-            };
+            document.getElementById('lm-paid-btn').onclick = async function () {
+  if (!proofUploaded) {
+    showToast('Please upload screenshot of proof', 'warning');
+    return;
+  }
+  if (isConfirmingPayment) return;
+
+  isConfirmingPayment = true;
+  const btn = document.getElementById('lm-paid-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    btn.textContent = 'Processing...';
+  }
+
+  try {
+    await confirmPayment(paymentId, itemsToBuy, total);
+  } finally {
+    isConfirmingPayment = false;
+    const b = document.getElementById('lm-paid-btn');
+    if (b) {
+      b.disabled = false;
+      b.classList.remove('opacity-70', 'cursor-not-allowed');
+      b.textContent = 'I Have Paid';
+    }
+  }
+};
+;
             document.getElementById('lm-cancel-btn').onclick = function() {
                 document.querySelectorAll('.lm-pay-popup').forEach(e => e.remove());
             };
@@ -2060,6 +2215,20 @@
                     showToast(err.message || 'Order creation failed', 'error');
                     return;
                 }
+        // Ensure address is stored in user saved addresses
+        if (currentAddress) {
+            const exists = (addresses || []).some(a =>
+                a.name === currentAddress.name &&
+                a.phone === currentAddress.phone &&
+                a.line1 === currentAddress.line1 &&
+                a.pincode === currentAddress.pincode
+            );
+            if (!exists) {
+                addresses.push({ ...currentAddress });
+                await saveUserState();
+            }
+        }
+
                 
                 cart = cart.filter(c => !pendingCheckoutItems.some(p => p._id === c._id));
                 pendingCheckoutItems = null;
