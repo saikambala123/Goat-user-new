@@ -567,6 +567,7 @@
         let editingAddressIndex = -1;
         let autoRefreshInterval = null; 
         let proofUploaded = false; 
+        let isSavingState = false; // Fix: Flag to prevent race conditions during sync
         
         // --- Language & Notifications ---
         let currentLang = localStorage.getItem('lm_lang') || 'en';
@@ -828,6 +829,9 @@
         
         async function saveUserState() {
             if (!currentUser || !currentUser.id) return;
+            
+            isSavingState = true; // Fix: LOCK state
+            
             try {
                 await fetch(`${API_URL}/user/state`, {
                     method: 'PUT',
@@ -836,6 +840,7 @@
                     body: JSON.stringify({ cart, wishlist, addresses, notifications }) 
                 });
             } catch (e) { console.error('Error saving user state:', e); }
+            finally { setTimeout(() => { isSavingState = false; }, 500); } // Fix: UNLOCK state
         }
 
         function switchAuthView(mode) {
@@ -994,7 +999,7 @@
             } catch (err) { showAuthScreen(); }
         }
         async function loadData() {
-            if (currentUser) await loadUserState();
+            if (currentUser && !isSavingState) await loadUserState(); // Fix: Only load if not saving
 
             let fetchedOrders = orders;
             let fetchedLivestock = livestock;
@@ -1358,7 +1363,7 @@
                     <div>${o.address.line1 || o.address.line}${o.address.line2 ? '<br>' + o.address.line2 : ''}</div>
                     <div>${o.address.city}, ${o.address.state} - ${o.address.pincode}</div>` : '';
                 
-                const trackBtn = o.status !== 'Cancelled' ? `<button onclick="openTrackModal('${o._id}')" class="flex-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg text-sm hover:bg-blue-200 dark:hover:bg-blue-800/40 transition">Track Order</button>` : '';
+                const trackBtn = (o.status !== 'Cancelled' && o.status !== 'Payment Rejected') ? `<button onclick="openTrackModal('${o._id}')" class="flex-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg text-sm hover:bg-blue-200 dark:hover:bg-blue-800/40 transition">Track Order</button>` : '';
                 const cancelBtn = o.status === 'Processing' ? `<button onclick="cancelOrder('${o._id}')" class="flex-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-3 py-2 rounded-lg text-sm hover:bg-red-200 dark:hover:bg-red-800/40 transition">Cancel Order</button>` : '';
                 
                 return `
@@ -2253,7 +2258,6 @@
     })();
     </script>
 
-<!-- ================= SUPPORT CHATBOT (AUTO-MERGED) ================= -->
 <div id="chatbot-box"
      class="fixed inset-0 z-[10000] hidden flex-col bg-white dark:bg-gray-900">
 
