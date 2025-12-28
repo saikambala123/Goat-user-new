@@ -434,6 +434,96 @@ app.put('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
     }
 });
 
+
+// --- INVOICE ROUTE ---
+app.get('/api/orders/:id/invoice', authMiddleware, async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).send('Order not found');
+
+        // Security check: only the owner or an admin can see the invoice
+        // (Assuming req.user is populated by authMiddleware)
+        if (order.userId.toString() !== req.user.id) {
+             return res.status(403).send('Access denied');
+        }
+
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                .header { display: flex; justify-content: space-between; border-bottom: 2px solid #22c55e; padding-bottom: 20px; }
+                .title { color: #166534; font-size: 28px; font-weight: bold; }
+                .info { margin-top: 30px; display: flex; justify-content: space-between; }
+                table { width: 100%; border-collapse: collapse; margin-top: 40px; }
+                th { background-color: #f0fdf4; text-align: left; padding: 12px; border-bottom: 2px solid #ddd; }
+                td { padding: 12px; border-bottom: 1px solid #eee; }
+                .total { text-align: right; font-size: 20px; font-weight: bold; margin-top: 30px; color: #166534; }
+                .footer { margin-top: 50px; text-align: center; color: #888; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div>
+                    <div class="title">LIVESTOCK MART</div>
+                    <div>Digital Marketplace for Breeders</div>
+                </div>
+                <div style="text-align: right">
+                    <div><strong>Invoice #:</strong> ${order._id.toString().slice(-6).toUpperCase()}</div>
+                    <div><strong>Date:</strong> ${order.date}</div>
+                </div>
+            </div>
+
+            <div class="info">
+                <div>
+                    <strong>Billed To:</strong><br>
+                    ${order.address.name}<br>
+                    ${order.address.line1}<br>
+                    ${order.address.city}, ${order.address.state} - ${order.address.pincode}<br>
+                    Phone: +91 ${order.address.phone}
+                </div>
+                <div style="text-align: right">
+                    <strong>Status:</strong> ${order.status}
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item Description</th>
+                        <th>Breed</th>
+                        <th>Type</th>
+                        <th style="text-align: right">Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${order.items.map(item => `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.breed}</td>
+                            <td>${item.type}</td>
+                            <td style="text-align: right">₹${item.price.toLocaleString('en-IN')}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+
+            <div class="total">Grand Total: ₹${order.total.toLocaleString('en-IN')}</div>
+
+            <div class="footer">
+                Thank you for your purchase from Livestock Mart.<br>
+                For support, contact support@livestockmart.com
+            </div>
+            <script>window.print();</script>
+        </body>
+        </html>
+        `;
+        res.send(html);
+    } catch (err) {
+        res.status(500).send('Error generating invoice');
+    }
+});
 // --- PAYMENT ROUTES ---
 app.post('/api/payment/create', authMiddleware, (req, res) => {
     const { amount } = req.body;
