@@ -31,6 +31,17 @@ const adminNotifSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 const AdminNotification = mongoose.models.AdminNotification || mongoose.model('AdminNotification', adminNotifSchema);
+
+// 3. Banner: User app About-section uploads (moving banners + video)
+const bannerSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true }, // about_img1..about_img6, about_video
+  type: { type: String, enum: ['image', 'video'], required: true },
+  data: Buffer,
+  contentType: String,
+  updatedAt: { type: Date, default: Date.now }
+});
+const Banner = mongoose.models.Banner || mongoose.model('Banner', bannerSchema);
+
 // -----------------------
 
 const app = express();
@@ -63,7 +74,7 @@ app.use(async (req, res, next) => {
 
 const upload = multer({ 
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 } 
+    limits: { fileSize: 50 * 1024 * 1024 } 
 });
 
 app.use(cors({ origin: true, credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] }));
@@ -316,6 +327,51 @@ app.get('/api/admin/notifications', async (req, res) => {
 });
 app.delete('/api/admin/notifications/clear', async (req, res) => {
     try { await AdminNotification.deleteMany({}); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
+
+// --- BANNER ROUTES ---
+// Public: list banners (metadata)
+app.get('/api/banners', async (req, res) => {
+  try {
+    const banners = await Banner.find({}, 'name type updatedAt');
+    res.json({ banners });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Public: get banner media by name
+app.get('/api/banners/:name', async (req, res) => {
+  try {
+    const banner = await Banner.findOne({ name: req.params.name });
+    if (!banner?.data) return res.status(404).send('Banner not found');
+    res.set('Content-Type', banner.contentType);
+    res.send(banner.data);
+  } catch (err) {
+    res.status(500).send('Server Error');
+  }
+});
+
+// Admin: upload/update banner media
+app.post('/api/admin/banners', upload.single('file'), async (req, res) => {
+  try {
+    const { name, type } = req.body;
+    if (!name || !type) return res.status(400).json({ message: 'name and type are required' });
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    await Banner.findOneAndUpdate(
+      { name },
+      { name, type, data: req.file.buffer, contentType: req.file.mimetype, updatedAt: Date.now() },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, message: 'Upload saved' });
+  } catch (err) {
+    console.error('Banner Upload Error:', err);
+    res.status(500).json({ error: 'Upload failed' });
+  }
 });
 
 // --- ORDER ROUTES ---
