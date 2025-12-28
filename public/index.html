@@ -71,225 +71,7 @@
         
         .pay-icon-btn { transition: transform 0.2s, border-color 0.2s; }
         .pay-icon-btn:hover { transform: scale(1.05); border-color: #10b981; }
-    
-        /* --- PREMIUM BLACK & GOLD THEME CSS --- */
-        :root {
-            --gold: #FFC107; /* Matches your yellow branding */
-            --dark-gold: #FFB300;
-            --black: #111;
-            --dark-gray: #1a1a1a;
-            --white: #fff;
-            --text-gray: #ccc;
-        }
-
-        .about-us-container h1, .about-us-container h2, .about-us-container h3 {
-            font-family: 'Playfair Display', serif;
-            color: var(--gold);
-        }
-
-        /* --- HERO SECTION --- */
-        .hero {
-            text-align: center;
-            padding: 60px 20px;
-            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('IMG-20251225-WA0007.jpg'); /* Market background */
-            background-size: cover;
-            background-position: center;
-            border-bottom: 4px solid var(--gold);
-        }
-
-        .hero h1 {
-            font-size: 3.5rem;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .hero .subtitle {
-            font-size: 1.5rem;
-            color: var(--white);
-            font-weight: 300;
-        }
-
-        .hero .badge {
-            background-color: var(--gold);
-            color: var(--black);
-            padding: 5px 15px;
-            font-weight: bold;
-            border-radius: 4px;
-            display: inline-block;
-            margin-top: 15px;
-            font-size: 1.2rem;
-        }
-
-        /* --- MOVING IMAGE BANNER (MARQUEE) --- */
-        .marquee-container {
-            background-color: var(--dark-gray);
-            padding: 20px 0;
-            overflow: hidden;
-            white-space: nowrap;
-            position: relative;
-        }
-
-        .marquee-content {
-            display: inline-block;
-            animation: scroll 25s linear infinite;
-        }
-
-        .marquee-content img {
-            height: 250px; /* Large premium height */
-            margin: 0 15px;
-            border: 2px solid var(--gold);
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            transition: transform 0.3s;
-        }
-
-        .marquee-content img:hover {
-            transform: scale(1.05);
-            z-index: 10;
-        }
-
-        /* --- ABOUT CONTENT GRID --- */
-        .about-section {
-            padding: 60px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 50px;
-            align-items: center;
-        }
-
-        .about-text h2 {
-            font-size: 2.8rem;
-            margin-bottom: 20px;
-        }
-
-        .about-text p {
-            font-size: 1.1rem;
-            color: var(--text-gray);
-            margin-bottom: 20px;
-        }
-
-        .highlight-box {
-            background: rgba(255, 193, 7, 0.1);
-            border-left: 5px solid var(--gold);
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        /* --- VIDEO SECTION --- */
-        .video-wrapper {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
-            height: 0;
-            background: #000;
-            border: 2px solid var(--gold);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(255, 193, 7, 0.2);
-        }
-
-        .video-wrapper video, .video-wrapper iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* --- FLASH SALE BANNER --- */
-        .offer-banner {
-            background: linear-gradient(45deg, #b91c1c, #dc2626);
-            color: white;
-            text-align: center;
-            padding: 40px;
-            margin: 40px 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .offer-banner h2 {
-            color: #fff; /* White text for red background */
-            font-size: 3rem;
-            font-weight: 900;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .offer-banner p {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        /* --- MOVING TEXT TICKER --- */
-        .text-ticker {
-            background-color: var(--gold);
-            color: var(--black);
-            padding: 15px 0;
-            overflow: hidden;
-            font-weight: bold;
-            font-size: 1.2rem;
-            border-top: 2px solid #fff;
-            border-bottom: 2px solid #fff;
-        }
-
-        .ticker-move {
-            display: inline-block;
-            white-space: nowrap;
-            animation: ticker 20s linear infinite;
-        }
-
-        .ticker-item {
-            margin-right: 50px;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .ticker-item i {
-            margin-right: 10px;
-        }
-
-        /* --- CONTACT FOOTER --- */
-        .contact-card {
-            background-color: var(--dark-gray);
-            padding: 40px;
-            text-align: center;
-            border-top: 1px solid #333;
-        }
-
-        .btn-call {
-            display: inline-block;
-            background-color: var(--gold);
-            color: var(--black);
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            text-decoration: none;
-            border-radius: 50px;
-            margin: 10px;
-            transition: 0.3s;
-        }
-
-        .btn-call:hover {
-            background-color: #fff;
-            transform: translateY(-3px);
-        }
-
-        /* ANIMATIONS */
-        @keyframes scroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-        @keyframes ticker {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-
     </style>
-
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
 </head>
 <body class="h-screen bg-gray-900 text-gray-100 overflow-hidden transition-colors duration-200">
     
@@ -748,64 +530,14 @@
                 </div>
 
                 <div id="view-about" class="hidden space-y-6">
-    <div class="about-us-container">
-    <section class="hero">
-        <div class="badge">EST. 1987</div> <h1>Kambala Kondayya Garu & Sons</h1> <p class="subtitle">Import & Export of Premium Livestock Sheep & Goats</p> <p style="color: var(--gold); margin-top: 10px; font-weight: bold;">
-            <i class="fa-solid fa-location-dot"></i> Kaspa Pentapadu, West Godavari </p>
-    </section>
-
-    
-    <div class="marquee-container">
-        <div class="marquee-content" id="about-marquee-content"></div>
-    </div>
-
-
-    <div class="text-ticker">
-        <div class="ticker-move">
-            <span class="ticker-item"><i class="fa-solid fa-star"></i> Guntur, Nalgonda, Miryalaguda Breeds Available</span> <span class="ticker-item"><i class="fa-solid fa-tag"></i> Wholesale Market Prices</span> <span class="ticker-item"><i class="fa-solid fa-truck"></i> Import & Export Business</span> <span class="ticker-item"><i class="fa-solid fa-award"></i> Quality Since 1987</span> <span class="ticker-item"><i class="fa-solid fa-star"></i> Contact: 9000274439 , 9908817975</span> </div>
-    </div>
-
-    <section class="about-section">
-        <div class="about-text">
-            <h2>The Greatest of All Time (G.O.A.T)</h2> <p>Welcome to <strong>Kambala Kondayya Garu & Sons</strong>. Established in 1987, we are a trusted name in the livestock industry located in Pentapadu, West Godavari.</p> <div class="highlight-box">
-                <h3 style="font-size: 1.5rem; margin-bottom: 10px;">Why Choose Us?</h3>
-                <ul style="list-style: none;">
-                    <li><i class="fa-solid fa-check" style="color: var(--gold);"></i> <strong>Wide Variety:</strong> Country (Natu) Male Goats, Sheeps.</li> <li><i class="fa-solid fa-check" style="color: var(--gold);"></i> <strong>Top Breeds:</strong> Sourcing from Guntur, Macharla, and Nalgonda.</li> <li><i class="fa-solid fa-check" style="color: var(--gold);"></i> <strong>Fair Pricing:</strong> Available at home & Peddatadepalli market prices.</li> </ul>
-            </div>
-
-            <p><strong>Owner:</strong> K. Surya Chandra Rao & k. srinivasa rao </p> <p><strong>Address:</strong> Door No: 3-73/1, Near Z.P. High School, Kaspa Pentapadu - 534166.</p> </div>
-
-        <div class="video-column">
-             <div class="video-wrapper">
-                <video controls poster="IMG-20251225-WA0007.jpg">
-                    <source id="about-video-source" src="YOUR_VIDEO_FILE.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            </div>
-            <p style="text-align: center; margin-top: 10px; font-style: italic; color: #888;">
-                <i class="fa-solid fa-play-circle"></i> View our Livestock Market
-            </p>
-        </div>
-    </section>
-
-    <section class="offer-banner">
-        <h2><i class="fa-solid fa-bolt"></i> SPECIAL OFFER</h2> <p>GET ₹500 OFF ON YOUR FIRST ORDER!</p> <div style="margin-top: 20px;">
-            <a href="tel:9000274439" class="btn-call" style="background: white; color: #dc2626;">ORDER NOW</a>
-        </div>
-    </section>
-
-    <section class="contact-card">
-        <h2>Contact Us Today</h2>
-        <p style="margin-bottom: 20px;">For Orders & Enquiries</p>
-
-        <div>
-            <a href="tel:9000274439" class="btn-call"><i class="fa-solid fa-phone"></i> 9000274439</a> <a href="tel:9908817975" class="btn-call"><i class="fa-brands fa-whatsapp"></i> 9908817975</a> </div>
-
-        <p style="margin-top: 30px; font-size: 0.9rem; color: #666;">
-            Kambala Kondayya Garu & Sons • Pentapadu Mandal, W.G. Dist, A.P.
-        </p> </section>
-    </div>
-</div>
+                    <div class="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm text-center transition-colors">
+                        <div class="w-20 h-20 bg-green-600 rounded-2xl flex items-center justify-center text-white text-4xl font-bold mx-auto mb-6 shadow-lg">L</div>
+                        <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4 lang-about-title">About LivestockMart</h2>
+                        <p class="text-gray-600 dark:text-gray-400 leading-relaxed max-w-2xl mx-auto lang-about-desc">
+                            India's most trusted digital marketplace for high-quality goats and sheep. We connect breeders directly with buyers, ensuring transparency, fair pricing, and healthy livestock delivery.
+                        </p>
+                    </div>
+                </div>
 
                 <div id="view-profile" class="hidden space-y-6">
                     <div class="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
@@ -1418,64 +1150,7 @@ let isConfirmingPayment = false; // Fix: Flag to prevent race conditions during 
             updateNotificationBadge(); 
         }
 
-        
-
-        async function loadAboutUploads() {
-            try {
-                const res = await fetch('/api/banners');
-                const data = await res.json();
-                const banners = (data && data.banners) ? data.banners : [];
-                const byName = new Map(banners.map(b => [b.name, b]));
-
-                // 1) Moving marquee images (fixed slots so admin buttons match UI)
-                const order = [
-                    { key: 'about_img1', fallback: 'IMG-20251225-WA0014.jpg', alt: 'Logo Banner' },
-                    { key: 'about_img2', fallback: 'IMG_20251228_224222.jpg', alt: 'Ram on Roof' },
-                    { key: 'about_img3', fallback: 'IMG-20251225-WA0007.jpg', alt: 'Market Scene' },
-                    { key: 'about_img4', fallback: 'IMG-20251225-WA0013.jpg', alt: 'Mega Sale Ram' },
-                    { key: 'about_img5', fallback: 'IMG-20251225-WA0005.jpg', alt: 'Goats Eating' },
-                    { key: 'about_img6', fallback: 'IMG_20251228_224143.jpg', alt: 'Sale Poster' }
-                ];
-
-                const marquee = document.getElementById('about-marquee-content');
-                if (marquee) {
-                    marquee.innerHTML = '';
-                    const cacheBust = 't=' + Date.now();
-
-                    order.forEach(item => {
-                        const meta = byName.get(item.key);
-                        const src = meta ? `/api/banners/${encodeURIComponent(item.key)}?${cacheBust}` : item.fallback;
-                        const img = document.createElement('img');
-                        img.src = src;
-                        img.alt = item.alt;
-                        marquee.appendChild(img);
-                    });
-
-                    // Duplicate once for smooth infinite scroll
-                    order.forEach(item => {
-                        const meta = byName.get(item.key);
-                        const src = meta ? `/api/banners/${encodeURIComponent(item.key)}?${cacheBust}` : item.fallback;
-                        const img = document.createElement('img');
-                        img.src = src;
-                        img.alt = item.alt;
-                        marquee.appendChild(img);
-                    });
-                }
-
-                // 2) About video
-                const videoMeta = byName.get('about_video');
-                const videoSource = document.getElementById('about-video-source');
-                const videoEl = videoSource ? videoSource.closest('video') : null;
-                if (videoMeta && videoSource && videoEl) {
-                    videoSource.src = `/api/banners/about_video?t=${Date.now()}`;
-                    videoEl.load();
-                }
-
-            } catch (err) {
-                console.error('About uploads load failed:', err);
-            }
-        }
-function router(viewName) {
+        function router(viewName) {
             const searchInput = document.getElementById('search-input');
             if (searchInput) searchInput.value = '';
             
@@ -1498,8 +1173,6 @@ function router(viewName) {
             });
             const activeView = document.getElementById(`view-${viewName}`);
             if (activeView) activeView.classList.remove('hidden');
-            if (viewName === 'about') { loadAboutUploads(); }
-
             
             // Sidebar Active State
             document.querySelectorAll('.nav-item').forEach(btn => {
