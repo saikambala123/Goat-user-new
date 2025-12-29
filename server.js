@@ -77,11 +77,11 @@ app.get('/health', (req, res) => {
 
 // --- HELPER FUNCTIONS ---
 function createToken(user) {
-    return jwt.sign({ id: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign({ id: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '30m' });
 }
 
 function setAuthCookie(res, token) {
-    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 60 * 1000 });
 }
 
 function authMiddleware(req, res, next) {
