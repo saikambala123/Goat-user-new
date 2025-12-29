@@ -77,11 +77,11 @@ app.get('/health', (req, res) => {
 
 // --- HELPER FUNCTIONS ---
 function createToken(user) {
-    return jwt.sign({ id: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign({ id: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '30m' });
 }
 
 function setAuthCookie(res, token) {
-    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 60 * 1000 });
 }
 
 function authMiddleware(req, res, next) {
@@ -460,84 +460,3 @@ app.get('/api/orders/:id/invoice', authMiddleware, async (req, res) => {
                 th { background-color: #f0fdf4; text-align: left; padding: 12px; border-bottom: 2px solid #ddd; }
                 td { padding: 12px; border-bottom: 1px solid #eee; }
                 .total { text-align: right; font-size: 20px; font-weight: bold; margin-top: 30px; color: #166534; }
-                .footer { margin-top: 50px; text-align: center; color: #888; font-size: 12px; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <div>
-                    <div class="title">LIVESTOCK MART</div>
-                    <div>Digital Marketplace for Breeders</div>
-                </div>
-                <div style="text-align: right">
-                    <div><strong>Invoice #:</strong> ${order._id.toString().slice(-6).toUpperCase()}</div>
-                    <div><strong>Date:</strong> ${order.date}</div>
-                </div>
-            </div>
-
-            <div class="info">
-                <div>
-                    <strong>Billed To:</strong><br>
-                    ${order.address.name}<br>
-                    ${order.address.line1}<br>
-                    ${order.address.city}, ${order.address.state} - ${order.address.pincode}<br>
-                    Phone: +91 ${order.address.phone}
-                </div>
-                <div style="text-align: right">
-                    <strong>Status:</strong> ${order.status}
-                </div>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Item Description</th>
-                        <th>Breed</th>
-                        <th>Type</th>
-                        <th style="text-align: right">Price</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${order.items.map(item => `
-                        <tr>
-                            <td>${item.name}</td>
-                            <td>${item.breed}</td>
-                            <td>${item.type}</td>
-                            <td style="text-align: right">₹${item.price.toLocaleString('en-IN')}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-
-            <div class="total">Grand Total: ₹${order.total.toLocaleString('en-IN')}</div>
-
-            <div class="footer">
-                Thank you for your purchase from Livestock Mart.<br>
-                For support, contact support@livestockmart.com
-            </div>
-            <script>window.print();</script>
-        </body>
-        </html>
-        `;
-        res.send(html);
-    } catch (err) {
-        res.status(500).send('Error generating invoice');
-    }
-});
-// --- PAYMENT ROUTES ---
-app.post('/api/payment/create', authMiddleware, (req, res) => {
-    const { amount } = req.body;
-    const paymentId = 'PAY_' + Date.now();
-    const upiString = `upi://pay?pa=${process.env.UPI_ID || 'sai.kambala@ybl'}&pn=LivestockMart&am=${amount}`;
-    res.json({ upiString, paymentId });
-});
-app.post('/api/payment/confirm', authMiddleware, (req, res) => res.json({ success: true }));
-
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-
-if (require.main === module) {
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-}
-
-module.exports = app;
