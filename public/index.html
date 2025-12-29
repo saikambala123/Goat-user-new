@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LivestockMart - User App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            750: '#2d3748',
+                            850: '#1a202c',
+                            900: '#111827',
+                            950: '#030712',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; overscroll-behavior-y: contain; }
+        
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Auth Styles */
+        .auth-glass { background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(18px); }
+        .auth-card { position: relative; overflow-y: auto; overflow-x: hidden; max-height: 85vh; }
+        .auth-panel { transition: transform 0.45s ease, opacity 0.45s ease; width: 100%; }
+        .auth-panel-register { position: absolute; top: 0; left: 0; transform: translateX(100%); opacity: 0; pointer-events: none; }
+        
+        .auth-card.show-register .auth-panel-login { transform: translateX(-100%); opacity: 0; pointer-events: none; }
+        .auth-card.show-register .auth-panel-register { transform: translateX(0); opacity: 1; pointer-events: auto; position: relative; }
+        
+        #sidebar { transition: transform 0.3s ease-in-out; }
+        
+        .lm-flyin { transform: translateY(18px); opacity: 0; transition: transform 360ms cubic-bezier(.2,.9,.2,1), opacity 360ms; }
+        .lm-flyin.lm-show { transform: translateY(0); opacity: 1; }
+        
+        .page-enter { opacity: 0; transform: translateY(20px); }
+        .page-enter-active { opacity: 1; transform: translateY(0); transition: all .6s cubic-bezier(.16,.67,.43,1); }
+
+        .card-premium { transition: transform .35s cubic-bezier(.2,.9,.2,1), box-shadow .35s; }
+        .card-premium:hover { transform: translateY(-6px) scale(1.03); box-shadow: 0 18px 40px rgba(0,0,0,0.15); }
+
+        .reveal { opacity: 0; transform: translateY(25px); transition: all .7s cubic-bezier(.2,.9,.2,1); }
+        .reveal-visible { opacity: 1; transform: translateY(0); }
+
+        .toast-anim { transform: translateX(20px); opacity: 0; animation: toastIn .4s forwards, toastOut .4s forwards 3s; }
+        @keyframes toastIn { to { transform: translateX(0); opacity: 1; } }
+        @keyframes toastOut { to { transform: translateX(30px); opacity: 0; } }
+
+        .btn-press { transition: transform .15s ease, box-shadow .3s ease; }
+        .btn-press:active { transform: scale(.96); }
+        .btn-glow:hover { box-shadow: 0 0 12px rgba(16,185,129,0.6); }
+
+        #pull-refresh-indicator {
+            position: fixed; top: -50px; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: center; z-index: 100; transition: top 0.2s; pointer-events: none;
+        }
+        .spinner {
+            width: 24px; height: 24px; border: 3px solid rgba(16, 185, 129, 0.3); border-radius: 50%; border-top-color: #10b981; animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .pay-icon-btn { transition: transform 0.2s, border-color 0.2s; }
+        .pay-icon-btn:hover { transform: scale(1.05); border-color: #10b981; }
+    
+/* Poster-Style Marquee: Fills card while keeping details */
+.lm-marquee-container {
+  position: relative;
+  overflow: hidden;
+  padding: 2rem 0;
+}
+
+.lm-marquee-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  gap: 1.5rem;
+  animation: lm-scroll-left 50s linear infinite;
+}
+
+.lm-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.lm-media-card {
+  /* Taller "Poster" aspect ratio (4:5) */
+  width: 240px; 
+  height: 320px;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+}
+
+@media (min-width: 768px) {
+  .lm-media-card {
+    width: 320px;
+    height: 420px;
+  }
+}
+
+/* The Blurred Background to "Fill" the card */
+.lm-media-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--bg-img);
+  background-size: cover;
+  background-position: center;
+  filter: blur(20px) brightness(0.5);
+  transform: scale(1.1);
+  z-index: 1;
+}
+
+.lm-media-card img,
+.lm-media-card video {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* Ensures no cropping of text/info */
+  object-fit: contain; 
+  z-index: 2;
+  display: block;
+}
+
+@keyframes lm-scroll-left {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+</style>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+</head>
+<body class="h-screen bg-gray-900 text-gray-100 overflow-hidden transition-colors duration-200">
+    
+    <div id="pull-refresh-indicator">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="mobile-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-3 pointer-events-none"></div>
+    
+    <div id="address-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md text-gray-800 dark:text-gray-100 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold" id="address-modal-title">Shipping Address</h3>
+                <button onclick="closeAddressModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Enter the address where you want to receive your livestock.</p>
+            <div class="pr-1">
+                <form id="address-form" class="space-y-3" onsubmit="submitAddress(event)">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+                        <input id="addr-name" type="text" class="mt-1 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
+                        <input id="addr-phone" type="tel" pattern="[0-9]{10}" maxlength="10"
+                            class="mt-1 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            placeholder="10-digit mobile number" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Address Line</label>
+                        <textarea id="addr-line" class="mt-1 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" rows="2" required></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">City</label>
+                            <input id="addr-city" type="text" class="mt-1 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">State</label>
+                            <input id="addr-state" type="text" class="mt-1 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Pincode</label>
+                        <input id="addr-pincode" type="tel" pattern="[0-9]{6}" maxlength="6"
+                            class="mt-1 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            placeholder="6-digit pincode" required>
+                    </div>
+                    <div class="mt-4 flex justify-end gap-3 pb-2">
+                        <button type="button" onclick="closeAddressModal()" class="px-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-md">
+                            Save & Continue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="track-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg text-gray-800 dark:text-gray-100 shadow-2xl relative border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold">Track Order</h3>
+                <button onclick="closeTrackModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="track-content" class="space-y-6"></div>
+        </div>
+    </div>
+    
+    <div id="auth-screen" class="hidden fixed inset-0 z-40 flex items-center justify-center px-4 bg-gradient-to-br from-green-900 via-gray-900 to-black overflow-y-auto py-8">
+        <div class="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch my-auto">
+            <div class="hidden md:flex flex-col justify-between text-white">
+                <div>
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-lg">L</div>
+                        <span class="text-2xl font-bold tracking-tight">LivestockMart</span>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-bold leading-tight mb-4">Manage your goats & sheep<br>like a modern marketplace.</h1>
+                    <p class="text-sm text-emerald-100/80">Realtime livestock listings, smart orders, and a smooth shopping experience.</p>
+                </div>
+            </div>
+            <div id="auth-card" class="auth-card auth-glass rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/10 hide-scrollbar">
+                <div class="auth-panel auth-panel-login">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                            <i data-lucide="lock" class="w-4 h-4 text-emerald-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-semibold text-white">Welcome back</h2>
+                            <p class="text-xs text-gray-300">Sign in to your dashboard</p>
+                        </div>
+                    </div>
+                    <form id="login-form" class="space-y-4 mt-4">
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-gray-200">Email</label>
+                            <input id="login-email" type="email" required
+                                   class="w-full rounded-xl bg-gray-900/70 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="you@example.com">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-gray-200">Password</label>
+                            <input id="login-password" type="password" required
+                                   class="w-full rounded-xl bg-gray-900/70 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="••••••••">
+                        </div>
+                        <button type="submit" class="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-sm font-semibold text-white py-2.5 transition-transform active:scale-[0.98]">
+                            <span>Sign in</span>
+                        </button>
+                    </form>
+                    <div class="mt-4 text-xs text-gray-300 flex items-center justify-between">
+                        <span>New here?</span>
+                        <button type="button" onclick="switchAuthView('register')" class="text-emerald-300 hover:text-emerald-200 font-medium">Create an account</button>
+                    </div>
+                </div>
+
+                <div class="auth-panel auth-panel-register">
+                    <div class="flex items-center justify-between mb-4">
+                         <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                <i data-lucide="user-plus" class="w-4 h-4 text-emerald-400"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-semibold text-white">Create account</h2>
+                                <p class="text-xs text-gray-300">Join the marketplace</p>
+                            </div>
+                        </div>
+                        <button onclick="switchAuthView('login')" class="text-gray-400 hover:text-white p-2">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <form id="register-form" class="space-y-4 mt-4">
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-gray-200">Full Name</label>
+                            <input id="register-name" type="text" required class="w-full rounded-xl bg-gray-900/70 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Name">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-gray-200">Email</label>
+                            <input id="register-email" type="email" required class="w-full rounded-xl bg-gray-900/70 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Email">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-gray-200">Password</label>
+                            <input id="register-password" type="password" required class="w-full rounded-xl bg-gray-900/70 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Password">
+                        </div>
+                        <button type="submit" class="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-sm font-semibold text-white py-2.5 transition-transform active:scale-[0.98]">
+                            <span>Create account</span>
+                        </button>
+                    </form>
+                    <div class="mt-4 text-xs text-gray-300 flex items-center justify-between">
+                        <span>Already registered?</span>
+                        <button type="button" onclick="switchAuthView('login')" class="text-emerald-300 hover:text-emerald-200 font-medium">Back to login</button>
+                    </div>
+                </div>
+                <div id="auth-error" class="mt-4 text-xs text-red-300 hidden"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="user-app" class="hidden h-[100dvh] w-full bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex overflow-hidden transition-colors duration-200">
+        
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-200 ease-in-out shadow-xl md:shadow-none h-full">
+            <div class="p-6 flex items-center justify-between gap-3 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold">L</div>
+                    <span class="text-xl font-bold text-gray-800 dark:text-white">LivestockMart</span>
+                </div>
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-500 dark:text-gray-400 hover:text-red-500">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <nav class="flex-1 px-4 space-y-2 overflow-y-auto min-h-0 pb-24 md:pb-4">
+                <button onclick="router('browse')" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <i data-lucide="home" class="w-5 h-5 flex-shrink-0"></i> <span class="lang-browse">Browse Livestock</span>
+                </button>
+                <button onclick="router('dashboard')" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i> <span class="lang-dashboard">My Dashboard</span>
+                </button>
+                <button onclick="router('cart')" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <i data-lucide="shopping-cart" class="w-5 h-5 flex-shrink-0"></i> <span class="lang-cart">Shopping Cart</span>
+                    <span id="cart-badge" class="ml-auto 
