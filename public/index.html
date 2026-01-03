@@ -225,17 +225,53 @@
     
     <div id="auth-screen" class="hidden fixed inset-0 z-40 flex items-center justify-center px-4 bg-gradient-to-br from-green-900 via-gray-900 to-black overflow-y-auto py-8">
         <div class="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch my-auto">
-            <div class="hidden md:flex flex-col justify-between text-white">
-                <div>
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-12 h-12 bg-white rounded-full p-1 shadow-md flex-shrink-0 overflow-hidden border border-emerald-500/20"><img src="IMG_20251229_120150.jpg" alt="Logo" class="w-full h-full object-contain rounded-full"></div>
-                        <span class="text-2xl font-bold tracking-tight">LivestockMart</span>
+            
+            <div class="hidden md:flex flex-col justify-between text-white p-8 rounded-3xl relative overflow-hidden bg-emerald-900/40 backdrop-blur-md border border-white/10">
+                <div class="absolute inset-0 z-0 opacity-40">
+                    <img src="IMG-20251225-WA0026.jpg" alt="Background" class="w-full h-full object-cover">
+                </div>
+                <div class="relative z-10">
+                    <div class="flex items-center gap-3 mb-8">
+                        <div class="w-12 h-12 bg-white rounded-full p-1 shadow-lg flex-shrink-0">
+                            <img src="IMG20251229120150.jpg" alt="Logo" class="w-full h-full object-contain rounded-full">
+                        </div>
+                        <span class="text-3xl font-bold tracking-tight">LivestockMart</span>
                     </div>
-                    <h1 class="text-3xl md:text-4xl font-bold leading-tight mb-4">Manage your goats & sheep<br>like a modern marketplace.</h1>
-                    <p class="text-sm text-emerald-100/80">Realtime livestock listings, smart orders, and a smooth shopping experience.</p>
+                    <h1 class="text-4xl lg:text-5xl font-extrabold leading-tight mb-6">
+                        Premium Quality <br><span class="text-emerald-400">Sheep & Goats</span>
+                    </h1>
+                    <p class="text-lg text-emerald-50/90 mb-8 max-w-md leading-relaxed">
+                        Join India's premier livestock marketplace. We provide doorstep delivery of verified, high-quality breeds sourced directly from expert breeders.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white/10 p-4 rounded-2xl border border-white/10">
+                            <p class="text-2xl font-bold text-emerald-400">500 OFF</p>
+                            <p class="text-xs text-emerald-100/70 uppercase tracking-wider">On First Order</p>
+                        </div>
+                        <div class="bg-white/10 p-4 rounded-2xl border border-white/10">
+                            <p class="text-2xl font-bold text-emerald-400">100%</p>
+                            <p class="text-xs text-emerald-100/70 uppercase tracking-wider">Verified Health</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative z-10 pt-8 border-t border-white/10">
+                    <p class="text-sm font-medium text-emerald-200 mb-2">Need immediate assistance?</p>
+                    <div class="flex gap-6 text-sm font-bold">
+                        <span>9000274439</span>
+                        <span>9908817975</span>
+                    </div>
                 </div>
             </div>
-            <div id="auth-card" class="auth-card auth-glass rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/10 hide-scrollbar">
+
+            
+            <div class="md:hidden mb-6 rounded-3xl overflow-hidden shadow-xl border border-white/10 relative h-48">
+                <img src="IMG-20251225-WA0026.jpg" alt="Livestock" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-4">
+                    <p class="text-emerald-400 font-bold text-sm">Welcome to LivestockMart</p>
+                    <h2 class="text-white text-xl font-bold">Premium Sheep & Goats</h2>
+                </div>
+            </div>
+<div id="auth-card" class="auth-card auth-glass rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/10 hide-scrollbar">
                 <div class="auth-panel auth-panel-login">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center">
