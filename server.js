@@ -193,12 +193,14 @@ app.get('/api/livestock', async (req, res) => {
 
 app.get('/api/livestock/image/:id', async (req, res) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).send('Invalid ID');
-        const livestock = await Livestock.findById(req.params.id, 'image');
-        if (!livestock?.image?.data) return res.status(404).send('Image not found');
-        res.set('Content-Type', livestock.image.contentType);
-        res.send(livestock.image.data);
-    } catch (err) { res.status(500).send('Server Error'); }
+        const index = parseInt(req.query.index) || 0;
+        const livestock = await Livestock.findById(req.params.id);
+        if (!livestock || !livestock.images || !livestock.images[index]) return res.status(404).send('Not found');
+        res.set('Content-Type', livestock.images[index].contentType);
+        res.send(livestock.images[index].data);
+    } catch (err) {
+        res.status(500).send('Server Error');
+    }
 });
 
 // --- ADMIN ROUTES ---
@@ -206,18 +208,28 @@ app.get('/api/admin/livestock', async (req, res) => {
     try { const livestock = await Livestock.find({}, '-image').sort({ createdAt: -1 }); res.json({ livestock }); } catch (err) { res.status(500).json({ message: 'Failed', error: err.message }); }
 });
 
-app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
+app.post('/api/admin/livestock', upload.array('images', 5), async (req, res) => {
     try {
-        const { name, type, breed, price, tags, status, weight } = req.body;
-        const image = req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : undefined;
-        let tagArray = tags && typeof tags === 'string' ? tags.split(',') : [];
-        const newItem = new Livestock({ name, type, breed, age: age || "N/A", weight: weight || "N/A", price: parseFloat(price) || 0, tags: tagArray, status: status || 'Available', images });
+        const { name, type, breed, price, tags, status, weight, age } = req.body;
+        const images = req.files ? req.files.map(f => ({ data: f.buffer, contentType: f.mimetype })) : [];
+        let tagArray = tags && typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : [];
+        const newItem = new Livestock({
+            name, type, breed, age, weight: weight || "N/A",
+            price: parseFloat(price) || 0,
+            tags: tagArray, status: status || 'Available', images
+        });
+        await newItem.save();
+        res.status(201).json(newItem);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
         await newItem.save();
         res.status(201).json(newItem);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.put('/api/admin/livestock/:id', upload.single('image'), async (req, res) => {
+app.put('/api/admin/livestock/:id', upload.array('images', 5), async (req, res) => {
     try {
         const updates = { ...req.body };
         if (updates.price) updates.price = parseFloat(updates.price);
@@ -537,18 +549,7 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 if (require.main === module) {
-    
-app.get('/api/livestock/image/:id/:index?', async (req, res) => {
-  try {
-    const idx = parseInt(req.params.index) || 0;
-    const item = await Livestock.findById(req.params.id, 'images');
-    if (!item?.images?.[idx]) return res.status(404).send('Not found');
-    res.set('Content-Type', item.images[idx].contentType);
-    res.send(item.images[idx].data);
-  } catch (err) { res.status(500).send('Error'); }
-});
-
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 }
 
 module.exports = app;
