@@ -211,7 +211,7 @@ app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
         const { name, type, breed, price, tags, status, weight } = req.body;
         const image = req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : undefined;
         let tagArray = tags && typeof tags === 'string' ? tags.split(',') : [];
-        const newItem = new Livestock({ name, type, breed, weight: weight || "N/A", price: parseFloat(price) || 0, tags: tagArray, status: status || 'Available', image });
+        const newItem = new Livestock({ name, type, breed, age: age || "N/A", weight: weight || "N/A", price: parseFloat(price) || 0, tags: tagArray, status: status || 'Available', images });
         await newItem.save();
         res.status(201).json(newItem);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -537,7 +537,18 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 if (require.main === module) {
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    
+app.get('/api/livestock/image/:id/:index?', async (req, res) => {
+  try {
+    const idx = parseInt(req.params.index) || 0;
+    const item = await Livestock.findById(req.params.id, 'images');
+    if (!item?.images?.[idx]) return res.status(404).send('Not found');
+    res.set('Content-Type', item.images[idx].contentType);
+    res.send(item.images[idx].data);
+  } catch (err) { res.status(500).send('Error'); }
+});
+
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 }
 
 module.exports = app;
