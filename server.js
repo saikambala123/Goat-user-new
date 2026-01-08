@@ -191,7 +191,7 @@ app.get('/api/livestock', async (req, res) => {
     try { const livestock = await Livestock.find({}, '-image'); res.json(livestock); } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/livestock/image/:id/:index?', async (req, res) => {
+app.get('/api/livestock/image/:id', async (req, res) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).send('Invalid ID');
         const livestock = await Livestock.findById(req.params.id, 'image');
@@ -207,7 +207,7 @@ app.get('/api/admin/livestock', async (req, res) => {
 });
 
 // 🟢 FIX APPLIED HERE: Added 'age' extraction and assignment
-app.post('/api/admin/livestock', upload.array('images', 5), async (req, res) => {
+app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
     try {
         // Extract all necessary fields, including 'age' which was missing before
         const { name, type, breed, price, tags, status, weight, age } = req.body;
@@ -237,11 +237,11 @@ app.post('/api/admin/livestock', upload.array('images', 5), async (req, res) => 
     }
 });
 
-app.put('/api/admin/livestock/:id', upload.array('images', 5), async (req, res) => {
+app.put('/api/admin/livestock/:id', upload.single('image'), async (req, res) => {
     try {
         const updates = { ...req.body };
         if (updates.price) updates.price = parseFloat(updates.price);
-        if (req.files && req.files.length > 0) updates.images = req.files.map(file => ({ data: file.buffer, contentType: file.mimetype }));
+        if (req.file) updates.image = { data: req.file.buffer, contentType: req.file.mimetype };
         const livestock = await Livestock.findByIdAndUpdate(req.params.id, updates, { new: true });
         res.json(livestock);
     } catch (err) { res.status(500).json({ message: 'Update failed', error: err.message }); }
