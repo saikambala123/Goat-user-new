@@ -175,7 +175,10 @@ app.get('/api/user/state', authMiddleware, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
         res.json({ cart: user.cart || [], wishlist: user.wishlist || [], addresses: user.addresses || [], notifications: user.notifications || [] });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        console.error('Livestock Create Error:', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.put('/api/user/state', authMiddleware, async (req, res) => {
@@ -208,10 +211,10 @@ app.get('/api/admin/livestock', async (req, res) => {
 
 app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
     try {
-        const { name, type, breed, price, tags, status, weight } = req.body;
+        const { name, type, breed, price, tags, status, weight, age } = req.body;
         const image = req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : undefined;
         let tagArray = tags && typeof tags === 'string' ? tags.split(',') : [];
-        const newItem = new Livestock({ name, type, breed, weight: weight || "N/A", price: parseFloat(price) || 0, tags: tagArray, status: status || 'Available', image });
+        const newItem = new Livestock({ name, type, breed, weight: weight || "N/A", age: age || (weight ? weight + ' kg' : 'Unknown'), price: parseFloat(price) || 0, tags: tagArray, status: status || 'Available', image });
         await newItem.save();
         res.status(201).json(newItem);
     } catch (err) { res.status(500).json({ error: err.message }); }
