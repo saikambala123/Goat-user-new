@@ -14,7 +14,7 @@ const Order = require('./models/Order');
 const User = require('./models/User');
 
 // --- INTERNAL MODELS ---
-// 1. ProofHash: To prevent duplicate images uploads
+// 1. ProofHash: To prevent duplicate image uploads
 const proofHashSchema = new mongoose.Schema({
     hash: { type: String, required: true, unique: true },
     orderId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Order' },
@@ -188,31 +188,31 @@ app.put('/api/user/state', authMiddleware, async (req, res) => {
 
 // --- LIVESTOCK ---
 app.get('/api/livestock', async (req, res) => {
-    try { const livestock = await Livestock.find({}, '-images'); res.json(livestock); } catch (err) { res.status(500).json({ error: err.message }); }
+    try { const livestock = await Livestock.find({}, '-image'); res.json(livestock); } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/livestock/images/:id', async (req, res) => {
+app.get('/api/livestock/image/:id', async (req, res) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).send('Invalid ID');
-        const livestock = await Livestock.findById(req.params.id, 'images');
-        if (!livestock?.images?.data) return res.status(404).send('Image not found');
-        res.set('Content-Type', livestock.images.contentType);
-        res.send(livestock.images.data);
+        const livestock = await Livestock.findById(req.params.id, 'image');
+        if (!livestock?.image?.data) return res.status(404).send('Image not found');
+        res.set('Content-Type', livestock.image.contentType);
+        res.send(livestock.image.data);
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
 // --- ADMIN ROUTES ---
 app.get('/api/admin/livestock', async (req, res) => {
-    try { const livestock = await Livestock.find({}, '-images').sort({ createdAt: -1 }); res.json({ livestock }); } catch (err) { res.status(500).json({ message: 'Failed', error: err.message }); }
+    try { const livestock = await Livestock.find({}, '-image').sort({ createdAt: -1 }); res.json({ livestock }); } catch (err) { res.status(500).json({ message: 'Failed', error: err.message }); }
 });
 
 // 🟢 FIX APPLIED HERE: Added 'age' extraction and assignment
-app.post('/api/admin/livestock', upload.array('imagess', 10), async (req, res) => {
+app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
     try {
         // Extract all necessary fields, including 'age' which was missing before
         const { name, type, breed, price, tags, status, weight, age } = req.body;
         
-        const imagess = req.files ? req.files.map(f => ({ data: f.buffer, contentType: f.mimetype })) : [];
+        const image = req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : undefined;
         let tagArray = tags && typeof tags === 'string' ? tags.split(',') : [];
         
         // Construct new item including 'age'
@@ -226,7 +226,7 @@ app.post('/api/admin/livestock', upload.array('imagess', 10), async (req, res) =
             price: parseFloat(price) || 0, 
             tags: tagArray, 
             status: status || 'Available', 
-            images 
+            image 
         });
         
         await newItem.save();
@@ -237,11 +237,11 @@ app.post('/api/admin/livestock', upload.array('imagess', 10), async (req, res) =
     }
 });
 
-app.put('/api/admin/livestock/:id', upload.array('imagess', 10), async (req, res) => {
+app.put('/api/admin/livestock/:id', upload.single('image'), async (req, res) => {
     try {
         const updates = { ...req.body };
         if (updates.price) updates.price = parseFloat(updates.price);
-        if (req.file) updates.images = { data: req.file.buffer, contentType: req.file.mimetype };
+        if (req.file) updates.image = { data: req.file.buffer, contentType: req.file.mimetype };
         const livestock = await Livestock.findByIdAndUpdate(req.params.id, updates, { new: true });
         res.json(livestock);
     } catch (err) { res.status(500).json({ message: 'Update failed', error: err.message }); }
@@ -255,7 +255,7 @@ app.get('/api/admin/orders', async (req, res) => {
     try {
         // Trigger lazy cleanup on fetch to ensure admin sees up-to-date states
         await expireUnpaidOrders();
-        // Exclude images data for performance
+        // Exclude image data for performance
         const orders = await Order.find({}, '-paymentProof.data').sort({ createdAt: -1 });
         res.json({ orders });
     } catch (err) { res.status(500).json({ message: 'Failed to load orders', error: err.message }); }
@@ -352,7 +352,7 @@ app.put('/api/orders/:id/reupload', authMiddleware, upload.single('paymentProof'
         const fileHash = getFileHash(req.file.buffer);
         const existingProof = await ProofHash.findOne({ hash: fileHash });
         if (existingProof && existingProof.orderId.toString() !== req.params.id) {
-            return res.status(400).json({ message: 'Duplicate proof detected! This images has already been used.' });
+            return res.status(400).json({ message: 'Duplicate proof detected! This image has already been used.' });
         }
 
         const order = await Order.findOne({ _id: req.params.id, userId: req.user.id });
@@ -400,7 +400,7 @@ app.post('/api/orders', authMiddleware, upload.single('paymentProof'), async (re
             fileHash = getFileHash(req.file.buffer);
             const existingProof = await ProofHash.findOne({ hash: fileHash });
             if (existingProof) {
-                return res.status(400).json({ message: 'Duplicate proof detected! This images has already been used.' });
+                return res.status(400).json({ message: 'Duplicate proof detected! This image has already been used.' });
             }
             paymentProof = { data: req.file.buffer, contentType: req.file.mimetype };
         }
