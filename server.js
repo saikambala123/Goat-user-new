@@ -175,10 +175,7 @@ app.get('/api/user/state', authMiddleware, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
         res.json({ cart: user.cart || [], wishlist: user.wishlist || [], addresses: user.addresses || [], notifications: user.notifications || [] });
-    } catch (err) {
-        console.error('Livestock Create Error:', err);
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.put('/api/user/state', authMiddleware, async (req, res) => {
@@ -209,15 +206,35 @@ app.get('/api/admin/livestock', async (req, res) => {
     try { const livestock = await Livestock.find({}, '-image').sort({ createdAt: -1 }); res.json({ livestock }); } catch (err) { res.status(500).json({ message: 'Failed', error: err.message }); }
 });
 
+// 🟢 FIX APPLIED HERE: Added 'age' extraction and assignment
 app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
     try {
+        // Extract all necessary fields, including 'age' which was missing before
         const { name, type, breed, price, tags, status, weight, age } = req.body;
+        
         const image = req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : undefined;
         let tagArray = tags && typeof tags === 'string' ? tags.split(',') : [];
-        const newItem = new Livestock({ name, type, breed, weight: weight || "N/A", age: age || (weight ? weight + ' kg' : 'Unknown'), price: parseFloat(price) || 0, tags: tagArray, status: status || 'Available', image });
+        
+        // Construct new item including 'age'
+        // If 'age' is not provided, we try to derive it from 'weight' as a fallback string
+        const newItem = new Livestock({ 
+            name, 
+            type, 
+            breed, 
+            age: age || (weight ? `${weight} kg` : "N/A"), 
+            weight: weight || "N/A", 
+            price: parseFloat(price) || 0, 
+            tags: tagArray, 
+            status: status || 'Available', 
+            image 
+        });
+        
         await newItem.save();
         res.status(201).json(newItem);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { 
+        console.error("Livestock Create Error:", err);
+        res.status(500).json({ error: err.message }); 
+    }
 });
 
 app.put('/api/admin/livestock/:id', upload.single('image'), async (req, res) => {
@@ -253,7 +270,7 @@ app.get('/api/admin/orders/proof/:id', async (req, res) => {
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// ✅ UPDATED: Reject Payment & Restock Items
+// ✅ Reject Payment & Restock Items
 app.put('/api/admin/orders/:id/reject', async (req, res) => {
     try {
         const { reason } = req.body;
