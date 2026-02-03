@@ -188,35 +188,65 @@ app.put('/api/user/state', authMiddleware, async (req, res) => {
 
 // --- LIVESTOCK ---
 app.get('/api/livestock', async (req, res) => {
-    try { const livestock = await Livestock.find({}, '-image'); res.json(livestock); } catch (err) { res.status(500).json({ error: err.message }); }
+    try { const livestock = await Livestock.find({}, '-images'); res.json(livestock); } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// 🟢 NEW: Get specific image by index
+app.get('/api/livestock/image/:id/:index', async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).send('Invalid ID');
+        const livestock = await Livestock.findById(req.params.id);
+        
+        // Handle array access safely
+        const imgIndex = parseInt(req.params.index);
+        if (!livestock?.images || !livestock.images[imgIndex]) {
+            return res.status(404).send('Image not found');
+        }
+        
+        const img = livestock.images[imgIndex];
+        res.set('Content-Type', img.contentType);
+        res.send(img.data);
+    } catch (err) { res.status(500).send('Server Error'); }
+});
+
+// 🟡 UPDATED: Legacy support (defaults to index 0 if specific index not requested)
 app.get('/api/livestock/image/:id', async (req, res) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).send('Invalid ID');
-        const livestock = await Livestock.findById(req.params.id, 'image');
-        if (!livestock?.image?.data) return res.status(404).send('Image not found');
-        res.set('Content-Type', livestock.image.contentType);
-        res.send(livestock.image.data);
+        const livestock = await Livestock.findById(req.params.id);
+        
+        // Check for new 'images' array first, then fallback to old 'image' object if schema migration is mixed
+        let img = null;
+        if (livestock?.images && livestock.images.length > 0) {
+            img = livestock.images[0];
+        } else if (livestock?.image?.data) {
+            img = livestock.image;
+        }
+
+        if (!img) return res.status(404).send('Image not found');
+        res.set('Content-Type', img.contentType);
+        res.send(img.data);
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
 // --- ADMIN ROUTES ---
 app.get('/api/admin/livestock', async (req, res) => {
-    try { const livestock = await Livestock.find({}, '-image').sort({ createdAt: -1 }); res.json({ livestock }); } catch (err) { res.status(500).json({ message: 'Failed', error: err.message }); }
+    try { const livestock = await Livestock.find({}, '-images').sort({ createdAt: -1 }); res.json({ livestock }); } catch (err) { res.status(500).json({ message: 'Failed', error: err.message }); }
 });
 
-// 🟢 FIX APPLIED HERE: Added 'age' extraction and assignment
-app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
+// 🟢 FIX APPLIED: Merged Multi-Image Upload with 'Age' Logic
+app.post('/api/admin/livestock', upload.array('images', 5), async (req, res) => {
     try {
-        // Extract all necessary fields, including 'age' which was missing before
         const { name, type, breed, price, tags, status, weight, age } = req.body;
         
-        const image = req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : undefined;
+        // Map multiple files to objects
+        const images = req.files ? req.files.map(f => ({
+            data: f.buffer,
+            contentType: f.mimetype
+        })) : [];
+
         let tagArray = tags && typeof tags === 'string' ? tags.split(',') : [];
         
-        // Construct new item including 'age'
-        // If 'age' is not provided, we try to derive it from 'weight' as a fallback string
         const newItem = new Livestock({ 
             name, 
             type, 
@@ -226,7 +256,7 @@ app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
             price: parseFloat(price) || 0, 
             tags: tagArray, 
             status: status || 'Available', 
-            image 
+            images: images // Storing array instead of single object
         });
         
         await newItem.save();
@@ -237,11 +267,20 @@ app.post('/api/admin/livestock', upload.single('image'), async (req, res) => {
     }
 });
 
-app.put('/api/admin/livestock/:id', upload.single('image'), async (req, res) => {
+// 🟡 UPDATED: Edit Route to support Multi-Image replacement
+app.put('/api/admin/livestock/:id', upload.array('images', 5), async (req, res) => {
     try {
         const updates = { ...req.body };
         if (updates.price) updates.price = parseFloat(updates.price);
-        if (req.file) updates.image = { data: req.file.buffer, contentType: req.file.mimetype };
+        
+        // If new images are uploaded, replace the array
+        if (req.files && req.files.length > 0) {
+            updates.images = req.files.map(f => ({
+                data: f.buffer,
+                contentType: f.mimetype
+            }));
+        }
+
         const livestock = await Livestock.findByIdAndUpdate(req.params.id, updates, { new: true });
         res.json(livestock);
     } catch (err) { res.status(500).json({ message: 'Update failed', error: err.message }); }
